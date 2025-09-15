@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import FriendsDiscoveryModal from './FriendsDiscoveryModal';
 
-const CharacterPanel = ({ character, onClose, onSave }) => {
+const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
   const [activeTab, setActiveTab] = useState('about');
   const [formData, setFormData] = useState({
     name: '',
     attributes: [],
     relationships: []
   });
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [relationshipPhrase, setRelationshipPhrase] = useState('');
+  const [generatedCharacters, setGeneratedCharacters] = useState([]);
+  const [showDiscoveryModal, setShowDiscoveryModal] = useState(false);
+  const [newRelationship, setNewRelationship] = useState({
+    targetCharacterId: '',
+    description: ''
+  });
 
   useEffect(() => {
     if (character) {
@@ -17,8 +26,38 @@ const CharacterPanel = ({ character, onClose, onSave }) => {
         attributes: character.attributes || [],
         relationships: character.relationships || []
       });
+      if (character.image_path) {
+        setPreviewUrl(`http://localhost:8000${character.image_path}`);
+      }
     }
   }, [character]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // ファイルサイズチェック（10MB）
+      if (file.size > 10 * 1024 * 1024) {
+        alert('ファイルサイズが大きすぎます。10MB以下のファイルを選択してください。');
+        return;
+      }
+
+      // ファイル形式チェック
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('サポートされていないファイル形式です。JPEG、PNG、GIF、WebPのみ使用可能です。');
+        return;
+      }
+
+      setSelectedImage(file);
+      
+      // プレビュー用URL作成
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -29,12 +68,16 @@ const CharacterPanel = ({ character, onClose, onSave }) => {
         // 新規作成
         const formDataObj = new FormData();
         formDataObj.append('name', formData.name);
+        if (selectedImage) {
+          formDataObj.append('image', selectedImage);
+        }
         await api.createCharacter(formDataObj);
       }
       onSave();
       onClose();
     } catch (error) {
       console.error('保存エラー:', error);
+      alert('保存に失敗しました。');
     }
   };
 
@@ -65,11 +108,87 @@ const CharacterPanel = ({ character, onClose, onSave }) => {
         character.id || character._id, 
         relationshipPhrase
       );
-      console.log('生成されたキャラクター:', result);
-      // TODO: 生成されたキャラクターを表示
+      setGeneratedCharacters(result.characters || []);
+      setShowDiscoveryModal(true);
     } catch (error) {
       console.error('Friends Discovery エラー:', error);
+      alert('キャラクター生成に失敗しました。');
     }
+  };
+
+  const handleSaveGeneratedCharacter = async (generatedChar) => {
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append('name', generatedChar.name);
+      
+      const newCharacter = await api.createCharacter(formDataObj);
+      
+      // 属性を追加
+      const attributes = [
+        { type: 'description', content: generatedChar.introduction },
+        { type: 'backstory', content: generatedChar.backstory }
+      ];
+      
+      await api.updateCharacter(newCharacter.id, { attributes });
+      
+      // 現在のキャラクターとの関係性を追加
+      const currentRelationships = [...formData.relationships];
+      currentRelationships.push({
+        target_character_id: newCharacter.id,
+        description: generatedChar.your_relationship
+      });
+      
+      setFormData({
+        ...formData,
+        relationships: currentRelationships
+      });
+      
+      // 新キャラクターにも逆の関係性を追加
+      await api.updateCharacter(newCharacter.id, {
+        relationships: [{
+          target_character_id: character.id || character._id,
+          description: generatedChar.my_relationship
+        }]
+      });
+      
+      onSave(); // リストを更新
+      alert(`${generatedChar.name}をキャラクターとして保存しました！`);
+    } catch (error) {
+      console.error('キャラクター保存エラー:', error);
+      alert('キャラクターの保存に失敗しました。');
+    }
+  };
+
+  const handleDeleteGeneratedCharacter = (index) => {
+    const newGenerated = generatedCharacters.filter((_, i) => i !== index);
+    setGeneratedCharacters(newGenerated);
+  };
+
+  const handleAddRelationship = () => {
+    if (!newRelationship.targetCharacterId || !newRelationship.description) {
+      alert('キャラクターと関係性の説明を入力してください。');
+      return;
+    }
+    
+    const updatedRelationships = [...formData.relationships, {
+      target_character_id: newRelationship.targetCharacterId,
+      description: newRelationship.description
+    }];
+    
+    setFormData({
+      ...formData,
+      relationships: updatedRelationships
+    });
+    
+    setNewRelationship({ targetCharacterId: '', description: '' });
+  };
+
+  const handleDeleteRelationship = (index) => {
+    const updatedRelationships = formData.relationships.filter((_, i) => i !== index);
+    setFormData({
+      ...formData,
+      relationships: updatedRelationships
+    });
   };
 
   const getAttributeLabel = (type) => {
@@ -83,15 +202,16 @@ const CharacterPanel = ({ character, onClose, onSave }) => {
   };
 
   return (
-    <div className="panel">
-      <div className="panel-header">
-        <h2 className="panel-title">
-          {character ? `${character.name} のプロフィール` : '新しいキャラクター'}
-        </h2>
-        <button className="btn btn-secondary" onClick={onClose}>
-          閉じる
-        </button>
-      </div>
+    <>
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">
+            {character ? `${character.name} のプロフィール` : '新しいキャラクター'}
+          </h2>
+          <button className="btn btn-secondary" onClick={onClose}>
+            閉じる
+          </button>
+        </div>
 
       <div className="tabs">
         <button 
@@ -124,6 +244,34 @@ const CharacterPanel = ({ character, onClose, onSave }) => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">画像</label>
+            {previewUrl && (
+              <div style={{ marginBottom: '10px' }}>
+                <img 
+                  src={previewUrl} 
+                  alt="プレビュー" 
+                  style={{
+                    width: '150px',
+                    height: '150px',
+                    objectFit: 'cover',
+                    borderRadius: '8px',
+                    border: '1px solid #ddd'
+                  }}
+                />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleImageChange}
+              className="form-input"
+            />
+            <small style={{ color: '#7f8c8d', fontSize: '12px' }}>
+              対応形式: JPEG, PNG, GIF, WebP（最大10MB）
+            </small>
           </div>
 
           <div className="form-group">
@@ -211,12 +359,80 @@ const CharacterPanel = ({ character, onClose, onSave }) => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">関係性</label>
-            {formData.relationships.map((rel, index) => (
-              <div key={index} style={{ marginBottom: '10px' }}>
-                <p>{rel.description}</p>
+            <label className="form-label">関係性の管理</label>
+            
+            <div className="add-relationship-form">
+              <h4>新しい関係性を追加</h4>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">対象キャラクター</label>
+                  <select
+                    className="form-input"
+                    value={newRelationship.targetCharacterId}
+                    onChange={(e) => setNewRelationship({
+                      ...newRelationship,
+                      targetCharacterId: e.target.value
+                    })}
+                  >
+                    <option value="">キャラクターを選択...</option>
+                    {allCharacters
+                      .filter(char => (char.id || char._id) !== (character?.id || character?._id))
+                      .map(char => (
+                        <option key={char.id || char._id} value={char.id || char._id}>
+                          {char.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">関係性の説明</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="関係性を説明してください"
+                    value={newRelationship.description}
+                    onChange={(e) => setNewRelationship({
+                      ...newRelationship,
+                      description: e.target.value
+                    })}
+                  />
+                </div>
+                <button 
+                  className="btn btn-success"
+                  onClick={handleAddRelationship}
+                >
+                  追加
+                </button>
               </div>
-            ))}
+            </div>
+
+            <div className="relationship-list">
+              {formData.relationships.map((rel, index) => (
+                <div key={index} className="relationship-item-card">
+                  <div className="relationship-info">
+                    <div className="relationship-target">
+                      キャラクターID: {rel.target_character_id}
+                    </div>
+                    <div className="relationship-description">
+                      {rel.description}
+                    </div>
+                  </div>
+                  <div className="relationship-actions">
+                    <button 
+                      className="btn btn-secondary"
+                      onClick={() => handleDeleteRelationship(index)}
+                    >
+                      削除
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {formData.relationships.length === 0 && (
+                <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>
+                  まだ関係性が設定されていません
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -226,7 +442,16 @@ const CharacterPanel = ({ character, onClose, onSave }) => {
           <p>履歴機能は開発中です</p>
         </div>
       )}
-    </div>
+      </div>
+
+      <FriendsDiscoveryModal
+        isOpen={showDiscoveryModal}
+        onClose={() => setShowDiscoveryModal(false)}
+        generatedCharacters={generatedCharacters}
+        onSaveCharacter={handleSaveGeneratedCharacter}
+        onDeleteCharacter={handleDeleteGeneratedCharacter}
+      />
+    </>
   );
 };
 
