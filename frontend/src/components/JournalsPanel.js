@@ -60,6 +60,30 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
     }
   };
 
+  const handleDeleteJournal = async (journalId) => {
+    if (window.confirm('このジャーナルを削除しますか？この操作は取り消せません。')) {
+      try {
+        await api.deleteJournal(journalId);
+        onUpdate();
+      } catch (error) {
+        console.error('ジャーナル削除エラー:', error);
+        alert('ジャーナルの削除に失敗しました。');
+      }
+    }
+  };
+
+  const handleDeleteComment = async (commentId, journalId) => {
+    if (window.confirm('このコメントを削除しますか？')) {
+      try {
+        await api.deleteComment(commentId);
+        loadComments(journalId);
+      } catch (error) {
+        console.error('コメント削除エラー:', error);
+        alert('コメントの削除に失敗しました。');
+      }
+    }
+  };
+
   const getCharacterName = (characterId) => {
     const character = characters.find(c => (c.id || c._id) === characterId);
     return character ? character.name : '不明';
@@ -141,6 +165,17 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
               <span className="journal-date">
                 {new Date(journal.created_at).toLocaleDateString('ja-JP')}
               </span>
+              <button
+                className="btn btn-danger"
+                onClick={() => handleDeleteJournal(journal.id || journal._id)}
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: '12px',
+                  padding: '4px 8px'
+                }}
+              >
+                削除
+              </button>
             </div>
             
             <div className="journal-content">
@@ -176,17 +211,33 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
 
               <div className="comments-list" style={{ marginTop: '15px' }}>
                 {journalComments[journal.id || journal._id]?.map(comment => (
-                  <div 
+                  <div
                     key={comment.id || comment._id}
-                    style={{ 
+                    style={{
                       background: '#fff',
                       padding: '10px',
                       borderRadius: '4px',
-                      marginBottom: '10px'
+                      marginBottom: '10px',
+                      position: 'relative'
                     }}
                   >
-                    <strong>{getCharacterName(comment.character_id)}:</strong>
-                    <p>{comment.content}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <strong>{getCharacterName(comment.character_id)}:</strong>
+                        <p>{comment.content}</p>
+                      </div>
+                      <button
+                        className="btn btn-danger"
+                        onClick={() => handleDeleteComment(comment.id || comment._id, journal.id || journal._id)}
+                        style={{
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          marginLeft: '10px'
+                        }}
+                      >
+                        削除
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

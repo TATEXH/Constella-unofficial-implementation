@@ -198,6 +198,23 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
     });
   };
 
+  const handleDeleteCharacter = async () => {
+    if (!character) return;
+
+    const confirmMessage = `本当に「${character.name}」を削除しますか？\nこの操作は取り消せません。関連するジャーナルとコメントも削除されます。`;
+    if (window.confirm(confirmMessage)) {
+      try {
+        await api.deleteCharacter(character.id || character._id);
+        alert('キャラクターを削除しました。');
+        onSave(); // リストを更新
+        onClose(); // パネルを閉じる
+      } catch (error) {
+        console.error('キャラクター削除エラー:', error);
+        alert('キャラクターの削除に失敗しました。');
+      }
+    }
+  };
+
   const getAttributeLabel = (type) => {
     const labels = {
       description: '説明',
@@ -339,9 +356,19 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
             ))}
           </div>
 
-          <button className="btn btn-success" onClick={handleSave}>
-            保存
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn btn-success" onClick={handleSave}>
+              保存
+            </button>
+            {character && (
+              <button
+                className="btn btn-danger"
+                onClick={handleDeleteCharacter}
+              >
+                キャラクターを削除
+              </button>
+            )}
+          </div>
         </div>
       )}
 

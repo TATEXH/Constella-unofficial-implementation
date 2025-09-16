@@ -103,11 +103,24 @@ async def update_journal(journal_id: str, journal_update: JournalUpdate):
 
 @router.delete("/{journal_id}")
 async def delete_journal(journal_id: str):
-    """ジャーナルを削除"""
+    """ジャーナルを削除（関連コメントも含む）"""
     db = get_database()
-    result = await db[COLLECTIONS["journals"]].delete_one({"_id": ObjectId(journal_id)})
-    
-    if result.deleted_count == 0:
+
+    # ジャーナルの存在確認
+    journal = await db[COLLECTIONS["journals"]].find_one({"_id": ObjectId(journal_id)})
+    if not journal:
         raise HTTPException(status_code=404, detail="ジャーナルが見つかりません")
-    
-    return {"message": "ジャーナルを削除しました"}
+
+    # 関連するコメントを削除
+    comments_result = await db[COLLECTIONS["comments"]].delete_many({"journal_id": journal_id})
+
+    # ジャーナル自体を削除
+    result = await db[COLLECTIONS["journals"]].delete_one({"_id": ObjectId(journal_id)})
+
+    return {
+        "message": "ジャーナルを削除しました",
+        "deleted": {
+            "journal": 1,
+            "comments": comments_result.deleted_count
+        }
+    }
