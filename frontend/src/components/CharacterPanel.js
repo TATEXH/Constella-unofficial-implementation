@@ -64,6 +64,13 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
       if (character) {
         // 更新
         await api.updateCharacter(character.id || character._id, formData);
+
+        // 画像が選択されている場合は画像も更新
+        if (selectedImage) {
+          const imageFormData = new FormData();
+          imageFormData.append('image', selectedImage);
+          await api.updateCharacterImage(character.id || character._id, imageFormData);
+        }
       } else {
         // 新規作成
         const formDataObj = new FormData();
