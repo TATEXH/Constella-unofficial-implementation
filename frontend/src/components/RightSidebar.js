@@ -21,10 +21,13 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew }) => {
             onClick={() => onSelectCharacter(character)}
           >
             {character.image_path && (
-              <img 
-                src={character.image_path} 
+              <img
+                src={`http://localhost:8000${character.image_path}`}
                 alt={character.name}
                 className="character-image"
+                onError={(e) => {
+                  e.target.src = '/placeholder.png';
+                }}
               />
             )}
             <div className="character-name">{character.name}</div>

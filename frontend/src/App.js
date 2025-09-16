@@ -57,8 +57,9 @@ function App() {
       
       <MainCanvas>
         {activePanel === 'character' && (
-          <CharacterPanel 
+          <CharacterPanel
             character={selectedCharacter}
+            allCharacters={characters}
             onClose={handleClosePanel}
             onSave={loadCharacters}
           />
