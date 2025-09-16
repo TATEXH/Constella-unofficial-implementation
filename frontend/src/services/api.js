@@ -28,6 +28,15 @@ const api = {
     return response.data;
   },
 
+  updateCharacterImage: async (id, formData) => {
+    const response = await axios.post(`${API_BASE_URL}/api/characters/${id}/image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
   deleteCharacter: async (id) => {
     const response = await axios.delete(`${API_BASE_URL}/api/characters/${id}`);
     return response.data;
