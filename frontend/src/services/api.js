@@ -82,6 +82,11 @@ const api = {
     return response.data;
   },
 
+  getCharacterComments: async (characterId) => {
+    const response = await axios.get(`${API_BASE_URL}/api/comments/character/${characterId}`);
+    return response.data;
+  },
+
   getComment: async (id) => {
     const response = await axios.get(`${API_BASE_URL}/api/comments/${id}`);
     return response.data;

@@ -6,6 +6,8 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
   const [theme, setTheme] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
   const [journalComments, setJournalComments] = useState({});
+  const [editingJournal, setEditingJournal] = useState(null);
+  const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
     // 各ジャーナルのコメントを読み込み
@@ -81,6 +83,28 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
         console.error('コメント削除エラー:', error);
         alert('コメントの削除に失敗しました。');
       }
+    }
+  };
+
+  const handleStartEdit = (journal) => {
+    setEditingJournal(journal.id || journal._id);
+    setEditContent(journal.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingJournal(null);
+    setEditContent('');
+  };
+
+  const handleSaveEdit = async (journalId) => {
+    try {
+      await api.updateJournal(journalId, { content: editContent });
+      onUpdate();
+      setEditingJournal(null);
+      setEditContent('');
+    } catch (error) {
+      console.error('ジャーナル更新エラー:', error);
+      alert('ジャーナルの更新に失敗しました。');
     }
   };
 
@@ -165,21 +189,59 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
               <span className="journal-date">
                 {new Date(journal.created_at).toLocaleDateString('ja-JP')}
               </span>
-              <button
-                className="btn btn-danger"
-                onClick={() => handleDeleteJournal(journal.id || journal._id)}
-                style={{
-                  marginLeft: 'auto',
-                  fontSize: '12px',
-                  padding: '4px 8px'
-                }}
-              >
-                削除
-              </button>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '5px' }}>
+                {editingJournal !== (journal.id || journal._id) && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleStartEdit(journal)}
+                    style={{
+                      fontSize: '12px',
+                      padding: '4px 8px'
+                    }}
+                  >
+                    編集
+                  </button>
+                )}
+                <button
+                  className="btn btn-danger"
+                  onClick={() => handleDeleteJournal(journal.id || journal._id)}
+                  style={{
+                    fontSize: '12px',
+                    padding: '4px 8px'
+                  }}
+                >
+                  削除
+                </button>
+              </div>
             </div>
-            
+
             <div className="journal-content">
-              {journal.content}
+              {editingJournal === (journal.id || journal._id) ? (
+                <div>
+                  <textarea
+                    className="form-textarea"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    style={{ width: '100%', minHeight: '200px' }}
+                  />
+                  <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+                    <button
+                      className="btn btn-success"
+                      onClick={() => handleSaveEdit(journal.id || journal._id)}
+                    >
+                      保存
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleCancelEdit}
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ whiteSpace: 'pre-wrap' }}>{journal.content}</div>
+              )}
             </div>
 
             <div style={{ marginTop: '20px' }}>
