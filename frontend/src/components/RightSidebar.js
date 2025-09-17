@@ -4,6 +4,7 @@ import api from '../services/api';
 const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterUpdate }) => {
   const [importing, setImporting] = useState(false);
   const [duplicateFiles, setDuplicateFiles] = useState([]);
+  const [importFileMap, setImportFileMap] = useState(new Map()); // ファイル名とファイルの対応を保持
 
   const handleExportAll = async () => {
     try {
@@ -31,21 +32,31 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
+    // ファイルマップを作成
+    const fileMap = new Map();
+    files.forEach(file => {
+      fileMap.set(file.name, file);
+    });
+    setImportFileMap(fileMap);
+
     setImporting(true);
+    let duplicates = [];
     try {
       const result = await api.importCharacters(files);
 
       // 重複があるかチェック
-      const duplicates = result.results.filter(r => r.status === 'duplicate');
+      duplicates = result.results.filter(r => r.status === 'duplicate');
       if (duplicates.length > 0) {
         setDuplicateFiles(duplicates);
-        alert(`${duplicates.length}個のキャラクターが重複しています。上書き確認が必要です。`);
+        // 重複の通知はダイアログで行うのでアラートは不要
       }
 
       // 成功したインポートの報告
       const successes = result.results.filter(r => r.status === 'success');
       if (successes.length > 0) {
-        alert(`${successes.length}個のキャラクターをインポートしました。`);
+        if (duplicates.length === 0) {
+          alert(`${successes.length}個のキャラクターをインポートしました。`);
+        }
         onCharacterUpdate(); // リストを更新
       }
 
@@ -53,7 +64,7 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
       const errors = result.results.filter(r => r.status === 'error');
       if (errors.length > 0) {
         console.error('インポートエラー:', errors);
-        alert(`${errors.length}個のファイルでエラーが発生しました。`);
+        alert(`${errors.length}個のファイルでエラーが発生しました。\n詳細はコンソールを確認してください。`);
       }
 
     } catch (error) {
@@ -61,17 +72,29 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
       alert('インポートに失敗しました。');
     } finally {
       setImporting(false);
-      event.target.value = ''; // ファイル選択をリセット
+      if (duplicates.length === 0) {
+        event.target.value = ''; // 重複がない場合のみリセット
+        setImportFileMap(new Map()); // ファイルマップもクリア
+      }
     }
   };
 
   const handleOverwriteConfirm = async (duplicateItem, overwrite) => {
     if (overwrite) {
       try {
-        // ファイルを再度読み込んで上書きAPIを呼び出し
-        // 注意: 実際の実装では元のファイルを保持する必要がある
-        alert('上書き機能は次の実装で完成させます。');
-        // TODO: 上書き処理の実装
+        // 元のファイルを取得
+        const originalFile = importFileMap.get(duplicateItem.filename);
+        if (!originalFile) {
+          alert('ファイルが見つかりません。');
+          return;
+        }
+
+        // 上書きAPIを呼び出し
+        const result = await api.importCharacterOverwrite(duplicateItem.existing_id, originalFile);
+        alert(`キャラクター「${duplicateItem.character_name}」を上書きしました。`);
+
+        // キャラクターリストを更新
+        onCharacterUpdate();
       } catch (error) {
         console.error('上書きエラー:', error);
         alert('上書きに失敗しました。');
@@ -80,6 +103,14 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
 
     // 重複リストから削除
     setDuplicateFiles(prev => prev.filter(item => item !== duplicateItem));
+
+    // 全ての重複処理が完了したらクリーンアップ
+    if (duplicateFiles.length <= 1) {
+      setImportFileMap(new Map());
+      // ファイル入力をリセット
+      const fileInput = document.getElementById('character-import');
+      if (fileInput) fileInput.value = '';
+    }
   };
 
   return (
