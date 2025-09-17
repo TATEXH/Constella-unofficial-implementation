@@ -38,8 +38,19 @@ function App() {
   };
 
   const handleOpenCharacterPanel = (character = null) => {
-    setSelectedCharacter(character);
-    setActivePanel('character');
+    // 新規作成時は一度パネルを閉じてからリセット
+    if (!character && activePanel === 'character') {
+      setActivePanel(null);
+      setSelectedCharacter(null);
+      // 短い遅延後に新規作成パネルを開く
+      setTimeout(() => {
+        setSelectedCharacter(null);
+        setActivePanel('character');
+      }, 50);
+    } else {
+      setSelectedCharacter(character);
+      setActivePanel('character');
+    }
   };
 
   const handleOpenJournalsPanel = () => {
