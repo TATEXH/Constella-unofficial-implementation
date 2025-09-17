@@ -32,9 +32,31 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
       });
       if (character.image_path) {
         setPreviewUrl(`http://localhost:8000${character.image_path}`);
+      } else {
+        setPreviewUrl(null);
       }
       // 履歴データを読み込む
       loadCharacterHistory(character.id || character._id);
+    } else {
+      // 新規作成の場合は全てリセット
+      setFormData({
+        name: '',
+        attributes: [],
+        relationships: []
+      });
+      setSelectedImage(null);
+      setPreviewUrl(null);
+      setRelationshipPhrase('');
+      setGeneratedCharacters([]);
+      setNewRelationship({
+        targetCharacterId: '',
+        description: ''
+      });
+      setCharacterHistory({
+        journals: [],
+        comments: []
+      });
+      setActiveTab('about'); // Aboutタブに戻す
     }
   }, [character]);
 
