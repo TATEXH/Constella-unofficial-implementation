@@ -85,10 +85,11 @@ function App() {
         )}
       </MainCanvas>
       
-      <RightSidebar 
+      <RightSidebar
         characters={characters}
         onSelectCharacter={handleOpenCharacterPanel}
         onCreateNew={() => handleOpenCharacterPanel(null)}
+        onCharacterUpdate={loadCharacters}
       />
     </div>
   );
