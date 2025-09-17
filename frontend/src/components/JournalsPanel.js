@@ -6,6 +6,8 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
   const [theme, setTheme] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
   const [journalComments, setJournalComments] = useState({});
+  const [editingJournal, setEditingJournal] = useState(null);
+  const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
     // 各ジャーナルのコメントを読み込み
@@ -57,6 +59,52 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
       loadComments(journalId);
     } catch (error) {
       console.error('コメント生成エラー:', error);
+    }
+  };
+
+  const handleDeleteJournal = async (journalId) => {
+    if (window.confirm('このジャーナルを削除しますか？この操作は取り消せません。')) {
+      try {
+        await api.deleteJournal(journalId);
+        onUpdate();
+      } catch (error) {
+        console.error('ジャーナル削除エラー:', error);
+        alert('ジャーナルの削除に失敗しました。');
+      }
+    }
+  };
+
+  const handleDeleteComment = async (commentId, journalId) => {
+    if (window.confirm('このコメントを削除しますか？')) {
+      try {
+        await api.deleteComment(commentId);
+        loadComments(journalId);
+      } catch (error) {
+        console.error('コメント削除エラー:', error);
+        alert('コメントの削除に失敗しました。');
+      }
+    }
+  };
+
+  const handleStartEdit = (journal) => {
+    setEditingJournal(journal.id || journal._id);
+    setEditContent(journal.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingJournal(null);
+    setEditContent('');
+  };
+
+  const handleSaveEdit = async (journalId) => {
+    try {
+      await api.updateJournal(journalId, { content: editContent });
+      onUpdate();
+      setEditingJournal(null);
+      setEditContent('');
+    } catch (error) {
+      console.error('ジャーナル更新エラー:', error);
+      alert('ジャーナルの更新に失敗しました。');
     }
   };
 
@@ -141,10 +189,59 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
               <span className="journal-date">
                 {new Date(journal.created_at).toLocaleDateString('ja-JP')}
               </span>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '5px' }}>
+                {editingJournal !== (journal.id || journal._id) && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleStartEdit(journal)}
+                    style={{
+                      fontSize: '12px',
+                      padding: '4px 8px'
+                    }}
+                  >
+                    編集
+                  </button>
+                )}
+                <button
+                  className="btn btn-danger"
+                  onClick={() => handleDeleteJournal(journal.id || journal._id)}
+                  style={{
+                    fontSize: '12px',
+                    padding: '4px 8px'
+                  }}
+                >
+                  削除
+                </button>
+              </div>
             </div>
-            
+
             <div className="journal-content">
-              {journal.content}
+              {editingJournal === (journal.id || journal._id) ? (
+                <div>
+                  <textarea
+                    className="form-textarea"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    style={{ width: '100%', minHeight: '200px' }}
+                  />
+                  <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+                    <button
+                      className="btn btn-success"
+                      onClick={() => handleSaveEdit(journal.id || journal._id)}
+                    >
+                      保存
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleCancelEdit}
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ whiteSpace: 'pre-wrap' }}>{journal.content}</div>
+              )}
             </div>
 
             <div style={{ marginTop: '20px' }}>
@@ -176,17 +273,33 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
 
               <div className="comments-list" style={{ marginTop: '15px' }}>
                 {journalComments[journal.id || journal._id]?.map(comment => (
-                  <div 
+                  <div
                     key={comment.id || comment._id}
-                    style={{ 
+                    style={{
                       background: '#fff',
                       padding: '10px',
                       borderRadius: '4px',
-                      marginBottom: '10px'
+                      marginBottom: '10px',
+                      position: 'relative'
                     }}
                   >
-                    <strong>{getCharacterName(comment.character_id)}:</strong>
-                    <p>{comment.content}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <strong>{getCharacterName(comment.character_id)}:</strong>
+                        <p>{comment.content}</p>
+                      </div>
+                      <button
+                        className="btn btn-danger"
+                        onClick={() => handleDeleteComment(comment.id || comment._id, journal.id || journal._id)}
+                        style={{
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          marginLeft: '10px'
+                        }}
+                      >
+                        削除
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
