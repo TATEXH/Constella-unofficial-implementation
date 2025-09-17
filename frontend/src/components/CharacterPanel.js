@@ -262,6 +262,30 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
     }
   };
 
+  const handleExportCharacter = async () => {
+    if (!character) return;
+
+    try {
+      const response = await api.exportCharacter(character.id || character._id);
+
+      // ファイルをダウンロード
+      const blob = new Blob([response.data], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${character.name}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      alert(`${character.name}.jsonをダウンロードしました。`);
+    } catch (error) {
+      console.error('エクスポートエラー:', error);
+      alert('エクスポートに失敗しました。');
+    }
+  };
+
   const getAttributeLabel = (type) => {
     const labels = {
       description: '説明',
@@ -403,17 +427,25 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button className="btn btn-success" onClick={handleSave}>
               保存
             </button>
             {character && (
-              <button
-                className="btn btn-danger"
-                onClick={handleDeleteCharacter}
-              >
-                キャラクターを削除
-              </button>
+              <>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleExportCharacter}
+                >
+                  エクスポート
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={handleDeleteCharacter}
+                >
+                  キャラクターを削除
+                </button>
+              </>
             )}
           </div>
         </div>

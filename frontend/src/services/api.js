@@ -123,6 +123,45 @@ const api = {
       relationship_phrase: relationshipPhrase
     });
     return response.data;
+  },
+
+  // Import/Export
+  exportCharacter: async (characterId) => {
+    const response = await axios.get(`${API_BASE_URL}/api/characters/${characterId}/export`, {
+      responseType: 'blob'
+    });
+    return response;
+  },
+
+  exportAllCharacters: async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/characters/export/all`, {
+      responseType: 'blob'
+    });
+    return response;
+  },
+
+  importCharacters: async (files) => {
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+    const response = await axios.post(`${API_BASE_URL}/api/characters/import`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  importCharacterOverwrite: async (characterId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axios.post(`${API_BASE_URL}/api/characters/import/overwrite/${characterId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
   }
 };
 
