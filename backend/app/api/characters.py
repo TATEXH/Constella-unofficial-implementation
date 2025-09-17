@@ -1,10 +1,15 @@
 """キャラクターAPIエンドポイント"""
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi.responses import Response, StreamingResponse
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 import os
 import shutil
+import json
+import zipfile
+import urllib.parse
+from io import BytesIO
 
 from app.core.database import get_database, COLLECTIONS
 from app.core.config import settings
@@ -174,6 +179,83 @@ async def update_character_image(
     char["_id"] = str(char["_id"])
     return Character(**char)
 
+@router.get("/export/all")
+async def export_all_characters():
+    """全キャラクターをZIPファイルとしてエクスポート"""
+    db = get_database()
+
+    # 全キャラクターを取得
+    characters = []
+    async for character in db[COLLECTIONS["characters"]].find():
+        characters.append(character)
+
+    if not characters:
+        raise HTTPException(status_code=404, detail="エクスポートするキャラクターがありません")
+
+    # ZIPファイルを作成
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for character in characters:
+            export_data = {
+                "name": character["name"],
+                "attributes": character.get("attributes", []),
+                "relationships": character.get("relationships", []),
+                "image_path": character.get("image_path"),
+                "created_at": character["created_at"].isoformat() if character.get("created_at") else None,
+                "updated_at": character["updated_at"].isoformat() if character.get("updated_at") else None,
+                "export_version": "1.0"
+            }
+
+            json_content = json.dumps(export_data, ensure_ascii=False, indent=2)
+            filename = f"{character['name']}.json"
+            zip_file.writestr(filename, json_content)
+
+    zip_buffer.seek(0)
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": "attachment; filename=characters.zip"
+        }
+    )
+
+@router.get("/{character_id}/export")
+async def export_character(character_id: str):
+    """キャラクターをJSONファイルとしてエクスポート"""
+    db = get_database()
+
+    # キャラクターを取得
+    character = await db[COLLECTIONS["characters"]].find_one({"_id": ObjectId(character_id)})
+    if not character:
+        raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
+
+    # MongoDB固有のフィールドを除外してクリーンなデータを作成
+    export_data = {
+        "name": character["name"],
+        "attributes": character.get("attributes", []),
+        "relationships": character.get("relationships", []),
+        "image_path": character.get("image_path"),
+        "created_at": character["created_at"].isoformat() if character.get("created_at") else None,
+        "updated_at": character["updated_at"].isoformat() if character.get("updated_at") else None,
+        "export_version": "1.0"
+    }
+
+    # JSONとしてレスポンス
+    json_content = json.dumps(export_data, ensure_ascii=False, indent=2)
+    json_bytes = BytesIO(json_content.encode('utf-8'))
+
+    # ファイル名を安全にエンコード
+    safe_filename = urllib.parse.quote(f"{character['name']}.json")
+
+    return StreamingResponse(
+        json_bytes,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f"attachment; filename=\"character.json\"; filename*=UTF-8''{safe_filename}"
+        }
+    )
+
 @router.delete("/{character_id}")
 async def delete_character(character_id: str):
     """キャラクターを削除（関連データも含む）"""
@@ -207,3 +289,126 @@ async def delete_character(character_id: str):
             "comments": comments_result.deleted_count
         }
     }
+
+@router.post("/import")
+async def import_characters(files: List[UploadFile] = File(...)):
+    """キャラクターJSONファイルをインポート"""
+    db = get_database()
+    results = []
+
+    for file in files:
+        try:
+            # ファイル形式チェック
+            if not file.filename.endswith('.json'):
+                results.append({
+                    "filename": file.filename,
+                    "status": "error",
+                    "message": "JSONファイルのみサポートされています"
+                })
+                continue
+
+            # JSONデータを読み込み
+            content = await file.read()
+            try:
+                character_data = json.loads(content.decode('utf-8'))
+            except json.JSONDecodeError:
+                results.append({
+                    "filename": file.filename,
+                    "status": "error",
+                    "message": "無効なJSONファイルです"
+                })
+                continue
+
+            # 必須フィールドのチェック
+            if "name" not in character_data:
+                results.append({
+                    "filename": file.filename,
+                    "status": "error",
+                    "message": "キャラクター名が見つかりません"
+                })
+                continue
+
+            character_name = character_data["name"]
+
+            # 既存キャラクターの重複チェック
+            existing_character = await db[COLLECTIONS["characters"]].find_one({"name": character_name})
+
+            if existing_character:
+                results.append({
+                    "filename": file.filename,
+                    "character_name": character_name,
+                    "status": "duplicate",
+                    "message": f"キャラクター「{character_name}」は既に存在します",
+                    "existing_id": str(existing_character["_id"])
+                })
+                continue
+
+            # 新しいキャラクターとして保存
+            new_character = {
+                "name": character_name,
+                "attributes": character_data.get("attributes", []),
+                "relationships": character_data.get("relationships", []),
+                "image_path": None,  # 画像は別途アップロードが必要
+                "created_at": datetime.now(),
+                "updated_at": datetime.now()
+            }
+
+            result = await db[COLLECTIONS["characters"]].insert_one(new_character)
+
+            results.append({
+                "filename": file.filename,
+                "character_name": character_name,
+                "status": "success",
+                "message": f"キャラクター「{character_name}」をインポートしました",
+                "character_id": str(result.inserted_id)
+            })
+
+        except Exception as e:
+            results.append({
+                "filename": file.filename,
+                "status": "error",
+                "message": f"インポートエラー: {str(e)}"
+            })
+
+    return {
+        "message": f"{len(files)}個のファイルを処理しました",
+        "results": results
+    }
+
+@router.post("/import/overwrite/{character_id}")
+async def import_character_overwrite(character_id: str, file: UploadFile = File(...)):
+    """既存キャラクターを上書きしてインポート"""
+    db = get_database()
+
+    try:
+        # 既存キャラクターの確認
+        existing_character = await db[COLLECTIONS["characters"]].find_one({"_id": ObjectId(character_id)})
+        if not existing_character:
+            raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
+
+        # JSONデータを読み込み
+        content = await file.read()
+        character_data = json.loads(content.decode('utf-8'))
+
+        # 既存キャラクターを更新
+        update_data = {
+            "name": character_data.get("name", existing_character["name"]),
+            "attributes": character_data.get("attributes", []),
+            "relationships": character_data.get("relationships", []),
+            "updated_at": datetime.now()
+        }
+
+        await db[COLLECTIONS["characters"]].update_one(
+            {"_id": ObjectId(character_id)},
+            {"$set": update_data}
+        )
+
+        return {
+            "message": f"キャラクター「{update_data['name']}」を上書きしました",
+            "character_id": character_id
+        }
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="無効なJSONファイルです")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"インポートエラー: {str(e)}")
