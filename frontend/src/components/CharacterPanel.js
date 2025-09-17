@@ -18,6 +18,10 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
     targetCharacterId: '',
     description: ''
   });
+  const [characterHistory, setCharacterHistory] = useState({
+    journals: [],
+    comments: []
+  });
 
   useEffect(() => {
     if (character) {
@@ -29,8 +33,29 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
       if (character.image_path) {
         setPreviewUrl(`http://localhost:8000${character.image_path}`);
       }
+      // 履歴データを読み込む
+      loadCharacterHistory(character.id || character._id);
     }
   }, [character]);
+
+  const loadCharacterHistory = async (characterId) => {
+    try {
+      const [journals, comments] = await Promise.all([
+        api.getJournals(),
+        api.getCharacterComments(characterId)
+      ]);
+
+      // このキャラクターのジャーナルをフィルタ
+      const characterJournals = journals.filter(j => j.character_id === characterId);
+
+      setCharacterHistory({
+        journals: characterJournals,
+        comments: comments
+      });
+    } catch (error) {
+      console.error('履歴データの読み込みエラー:', error);
+    }
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -198,6 +223,23 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
     });
   };
 
+  const handleDeleteCharacter = async () => {
+    if (!character) return;
+
+    const confirmMessage = `本当に「${character.name}」を削除しますか？\nこの操作は取り消せません。関連するジャーナルとコメントも削除されます。`;
+    if (window.confirm(confirmMessage)) {
+      try {
+        await api.deleteCharacter(character.id || character._id);
+        alert('キャラクターを削除しました。');
+        onSave(); // リストを更新
+        onClose(); // パネルを閉じる
+      } catch (error) {
+        console.error('キャラクター削除エラー:', error);
+        alert('キャラクターの削除に失敗しました。');
+      }
+    }
+  };
+
   const getAttributeLabel = (type) => {
     const labels = {
       description: '説明',
@@ -339,9 +381,19 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
             ))}
           </div>
 
-          <button className="btn btn-success" onClick={handleSave}>
-            保存
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn btn-success" onClick={handleSave}>
+              保存
+            </button>
+            {character && (
+              <button
+                className="btn btn-danger"
+                onClick={handleDeleteCharacter}
+              >
+                キャラクターを削除
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -444,9 +496,89 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
         </div>
       )}
 
-      {activeTab === 'history' && (
-        <div>
-          <p>履歴機能は開発中です</p>
+      {activeTab === 'history' && character && (
+        <div className="history-panel">
+          <div style={{ marginBottom: '30px' }}>
+            <h3 style={{ marginBottom: '15px' }}>ジャーナル履歴 ({characterHistory.journals.length}件)</h3>
+            {characterHistory.journals.length > 0 ? (
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {characterHistory.journals.map((journal, index) => (
+                  <div
+                    key={journal.id || journal._id}
+                    style={{
+                      background: '#f8f9fa',
+                      padding: '15px',
+                      borderRadius: '8px',
+                      marginBottom: '10px'
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: '10px'
+                    }}>
+                      <strong>テーマ: {journal.theme}</strong>
+                      <span style={{ color: '#7f8c8d', fontSize: '12px' }}>
+                        {new Date(journal.created_at).toLocaleDateString('ja-JP')}
+                      </span>
+                    </div>
+                    <div style={{
+                      maxHeight: '100px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      fontSize: '14px',
+                      color: '#495057'
+                    }}>
+                      {journal.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>
+                ジャーナルエントリーがありません
+              </p>
+            )}
+          </div>
+
+          <div>
+            <h3 style={{ marginBottom: '15px' }}>コメント履歴 ({characterHistory.comments.length}件)</h3>
+            {characterHistory.comments.length > 0 ? (
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {characterHistory.comments.map((comment, index) => (
+                  <div
+                    key={comment.id || comment._id}
+                    style={{
+                      background: '#fff',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      marginBottom: '8px',
+                      border: '1px solid #e9ecef'
+                    }}
+                  >
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#495057',
+                      marginBottom: '5px'
+                    }}>
+                      {comment.content}
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#adb5bd',
+                      textAlign: 'right'
+                    }}>
+                      {new Date(comment.created_at).toLocaleString('ja-JP')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>
+                コメントがありません
+              </p>
+            )}
+          </div>
         </div>
       )}
       </div>

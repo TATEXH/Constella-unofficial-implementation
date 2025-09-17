@@ -22,6 +22,16 @@ async def get_journal_comments(journal_id: str):
         comments.append(Comment(**comment))
     return comments
 
+@router.get("/character/{character_id}", response_model=List[Comment])
+async def get_character_comments(character_id: str):
+    """特定のキャラクターのコメントを取得"""
+    db = get_database()
+    comments = []
+    async for comment in db[COLLECTIONS["comments"]].find({"character_id": character_id}).sort("created_at", -1):
+        comment["_id"] = str(comment["_id"])
+        comments.append(Comment(**comment))
+    return comments
+
 @router.get("/{comment_id}", response_model=Comment)
 async def get_comment(comment_id: str):
     """特定のコメントを取得"""

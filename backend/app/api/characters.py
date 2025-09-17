@@ -176,11 +176,34 @@ async def update_character_image(
 
 @router.delete("/{character_id}")
 async def delete_character(character_id: str):
-    """キャラクターを削除"""
+    """キャラクターを削除（関連データも含む）"""
     db = get_database()
-    result = await db[COLLECTIONS["characters"]].delete_one({"_id": ObjectId(character_id)})
-    
-    if result.deleted_count == 0:
+
+    # キャラクターの存在確認
+    character = await db[COLLECTIONS["characters"]].find_one({"_id": ObjectId(character_id)})
+    if not character:
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
-    
-    return {"message": "キャラクターを削除しました"}
+
+    # 関連するジャーナルを削除
+    journals_result = await db[COLLECTIONS["journals"]].delete_many({"character_id": character_id})
+
+    # 関連するコメントを削除
+    comments_result = await db[COLLECTIONS["comments"]].delete_many({"character_id": character_id})
+
+    # 他のキャラクターの関係性から削除対象キャラクターへの関係を削除
+    await db[COLLECTIONS["characters"]].update_many(
+        {"relationships.target_character_id": character_id},
+        {"$pull": {"relationships": {"target_character_id": character_id}}}
+    )
+
+    # キャラクター自体を削除
+    result = await db[COLLECTIONS["characters"]].delete_one({"_id": ObjectId(character_id)})
+
+    return {
+        "message": f"キャラクター「{character['name']}」を削除しました",
+        "deleted": {
+            "character": 1,
+            "journals": journals_result.deleted_count,
+            "comments": comments_result.deleted_count
+        }
+    }
