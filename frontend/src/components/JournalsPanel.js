@@ -8,6 +8,7 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
   const [journalComments, setJournalComments] = useState({});
   const [editingJournal, setEditingJournal] = useState(null);
   const [editContent, setEditContent] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null); // 返信対象のコメントID
 
   useEffect(() => {
     // 各ジャーナルのコメントを読み込み
@@ -53,10 +54,11 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
     }
   };
 
-  const handleGenerateComment = async (journalId, characterId) => {
+  const handleGenerateComment = async (journalId, characterId, parentCommentId = null) => {
     try {
-      await api.generateComment(journalId, characterId);
+      await api.generateComment(journalId, characterId, parentCommentId);
       loadComments(journalId);
+      setReplyingTo(null); // 返信モードをリセット
     } catch (error) {
       console.error('コメント生成エラー:', error);
     }
@@ -111,6 +113,123 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
   const getCharacterName = (characterId) => {
     const character = characters.find(c => (c.id || c._id) === characterId);
     return character ? character.name : '不明';
+  };
+
+  // コメントをスレッド構造に整理
+  const organizeComments = (comments) => {
+    const rootComments = [];
+    const commentMap = {};
+
+    // まずすべてのコメントをマップに格納
+    comments.forEach(comment => {
+      commentMap[comment.id || comment._id] = {
+        ...comment,
+        replies: []
+      };
+    });
+
+    // 親子関係を構築
+    comments.forEach(comment => {
+      if (comment.parent_comment_id) {
+        const parent = commentMap[comment.parent_comment_id];
+        if (parent) {
+          parent.replies.push(commentMap[comment.id || comment._id]);
+        }
+      } else {
+        rootComments.push(commentMap[comment.id || comment._id]);
+      }
+    });
+
+    return rootComments;
+  };
+
+  // 再帰的にコメントをレンダリング
+  const renderComment = (comment, journalId, depth) => {
+    const commentId = comment.id || comment._id;
+    const indentLevel = depth * 20; // 20pxずつインデント
+
+    return (
+      <div key={commentId} style={{ marginLeft: `${indentLevel}px` }}>
+        <div
+          style={{
+            background: depth === 0 ? '#fff' : '#f8f9fa',
+            padding: '10px',
+            borderRadius: '4px',
+            marginBottom: '10px',
+            position: 'relative',
+            borderLeft: depth > 0 ? '3px solid #dee2e6' : 'none'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <strong>{getCharacterName(comment.character_id)}:</strong>
+              <p style={{ margin: '5px 0' }}>{comment.content}</p>
+
+              {/* 返信ボタン */}
+              <div style={{ marginTop: '5px', display: 'flex', gap: '5px' }}>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => setReplyingTo(replyingTo === commentId ? null : commentId)}
+                  style={{
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    backgroundColor: replyingTo === commentId ? '#6c757d' : '#007bff',
+                    color: 'white',
+                    border: 'none'
+                  }}
+                >
+                  {replyingTo === commentId ? 'キャンセル' : '返信'}
+                </button>
+              </div>
+
+              {/* 返信フォーム */}
+              {replyingTo === commentId && (
+                <div style={{ marginTop: '10px', padding: '10px', background: '#e9ecef', borderRadius: '4px' }}>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleGenerateComment(journalId, e.target.value, commentId);
+                        e.target.value = '';
+                      }
+                    }}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">返信するキャラクターを選択</option>
+                    {characters
+                      .filter(c => (c.id || c._id) !== comment.character_id)
+                      .map(character => (
+                        <option
+                          key={character.id || character._id}
+                          value={character.id || character._id}
+                        >
+                          {character.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <button
+              className="btn btn-danger"
+              onClick={() => handleDeleteComment(commentId, journalId)}
+              style={{
+                fontSize: '10px',
+                padding: '2px 6px',
+                marginLeft: '10px'
+              }}
+            >
+              削除
+            </button>
+          </div>
+        </div>
+
+        {/* 返信を再帰的にレンダリング */}
+        {comment.replies && comment.replies.map(reply =>
+          renderComment(reply, journalId, depth + 1)
+        )}
+      </div>
+    );
   };
 
   return (
@@ -272,36 +391,11 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
               </div>
 
               <div className="comments-list" style={{ marginTop: '15px' }}>
-                {journalComments[journal.id || journal._id]?.map(comment => (
-                  <div
-                    key={comment.id || comment._id}
-                    style={{
-                      background: '#fff',
-                      padding: '10px',
-                      borderRadius: '4px',
-                      marginBottom: '10px',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <strong>{getCharacterName(comment.character_id)}:</strong>
-                        <p>{comment.content}</p>
-                      </div>
-                      <button
-                        className="btn btn-danger"
-                        onClick={() => handleDeleteComment(comment.id || comment._id, journal.id || journal._id)}
-                        style={{
-                          fontSize: '10px',
-                          padding: '2px 6px',
-                          marginLeft: '10px'
-                        }}
-                      >
-                        削除
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                {journalComments[journal.id || journal._id] &&
+                  organizeComments(journalComments[journal.id || journal._id]).map(comment =>
+                    renderComment(comment, journal.id || journal._id, 0)
+                  )
+                }
               </div>
             </div>
           </div>
