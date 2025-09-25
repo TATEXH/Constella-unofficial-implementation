@@ -23,6 +23,7 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
     comments: []
   });
   const [isGeneratingFriends, setIsGeneratingFriends] = useState(false);
+  const [showAttributeHelp, setShowAttributeHelp] = useState({}); // 属性ヘルプの表示状態
 
   useEffect(() => {
     if (character) {
@@ -300,6 +301,57 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
     return labels[type] || type;
   };
 
+  // 属性の詳細情報（説明・例・プレースホルダー）
+  const getAttributeInfo = (type) => {
+    const attributeInfo = {
+      description: {
+        title: '説明・外見',
+        description: 'キャラクターの基本的な紹介や外見的特徴を記述します。',
+        examples: [
+          '元気いっぱいの17歳の高校生。黒髪のショートカットで、いつも明るい笑顔を浮かべている。',
+          '25歳の図書館司書。肩まで伸びた栗色の髪を後ろで束ね、丸縁の眼鏡をかけている。穏やかな表情だが、好きな本の話になると目が輝く。'
+        ],
+        placeholder: '例: 17歳の高校生。黒髪のショートカットで、いつも明るい笑顔を浮かべている。'
+      },
+      personality: {
+        title: '性格・内面',
+        description: 'キャラクターの性格、思考パターン、価値観を記述します。',
+        examples: [
+          '好奇心旺盛で行動力がある。時々おっちょこちょいだが、困っている人を見ると放っておけない性格。',
+          '内向的で慎重な性格。新しい環境に馴染むのに時間がかかるが、一度打ち解けると深い信頼関係を築く。完璧主義的な一面があり、責任感が強い。'
+        ],
+        placeholder: '例: 好奇心旺盛で行動力がある。困っている人を見ると放っておけない性格。'
+      },
+      currentStatus: {
+        title: '現在の状況・状態',
+        description: '現時点でのキャラクターの置かれた状況や抱えている問題を記述します。',
+        examples: [
+          '大学受験を控えており、将来の進路について悩んでいる。部活動と勉強の両立に苦労中。',
+          '転職活動中で新しい職場を探している。前職での人間関係のストレスから一時的に実家に戻って心を休めている状態。新しいスタートを切りたい気持ちと不安な気持ちが入り混じっている。'
+        ],
+        placeholder: '例: 大学受験を控えており、将来の進路について悩んでいる。'
+      },
+      backstory: {
+        title: '背景・過去',
+        description: 'キャラクターの生い立ちや重要な過去の出来事を記述します。',
+        examples: [
+          '幼少期に両親を亡くし、祖母に育てられた。祖母の影響で料理が得意になり、人を喜ばせることに生きがいを感じる。',
+          '東京で生まれ育ったが、10歳の時に父親の仕事の都合で地方の小さな町に引っ越した。最初は都会との違いに戸惑ったが、地域の図書館で出会った年配の司書に影響を受け、本の世界に深く魅力を感じるようになった。'
+        ],
+        placeholder: '例: 幼少期に両親を亡くし、祖母に育てられた。祖母の影響で料理が得意になった。'
+      }
+    };
+    return attributeInfo[type] || { title: type, description: '', examples: [], placeholder: '' };
+  };
+
+  // 属性ヘルプの表示切り替え
+  const toggleAttributeHelp = (type) => {
+    setShowAttributeHelp(prev => ({
+      ...prev,
+      [type]: !prev[type]
+    }));
+  };
+
   return (
     <>
       <div className="panel">
@@ -376,34 +428,199 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
           <div className="form-group">
             <label className="form-label">属性</label>
             <div style={{ marginBottom: '10px' }}>
-              <button 
-                className="btn btn-primary"
-                onClick={() => handleAddAttribute('description')}
-                style={{ marginRight: '10px' }}
-              >
-                + 説明
-              </button>
-              <button 
-                className="btn btn-primary"
-                onClick={() => handleAddAttribute('personality')}
-                style={{ marginRight: '10px' }}
-              >
-                + 性格
-              </button>
-              <button 
-                className="btn btn-primary"
-                onClick={() => handleAddAttribute('currentStatus')}
-                style={{ marginRight: '10px' }}
-              >
-                + 現在の状況
-              </button>
-              <button 
-                className="btn btn-primary"
-                onClick={() => handleAddAttribute('backstory')}
-              >
-                + 背景設定
-              </button>
+              {/* 説明 */}
+              <div style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleAddAttribute('description')}
+                  style={{ marginRight: '5px' }}
+                >
+                  + 説明
+                </button>
+                <button
+                  onClick={() => toggleAttributeHelp('description')}
+                  style={{
+                    background: 'none',
+                    border: '1px solid #007bff',
+                    borderRadius: '50%',
+                    width: '25px',
+                    height: '25px',
+                    cursor: 'pointer',
+                    color: '#007bff',
+                    fontSize: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="説明・使い方を表示"
+                >
+                  ?
+                </button>
+              </div>
+
+              {/* 性格 */}
+              <div style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleAddAttribute('personality')}
+                  style={{ marginRight: '5px' }}
+                >
+                  + 性格
+                </button>
+                <button
+                  onClick={() => toggleAttributeHelp('personality')}
+                  style={{
+                    background: 'none',
+                    border: '1px solid #007bff',
+                    borderRadius: '50%',
+                    width: '25px',
+                    height: '25px',
+                    cursor: 'pointer',
+                    color: '#007bff',
+                    fontSize: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="性格・使い方を表示"
+                >
+                  ?
+                </button>
+              </div>
+
+              {/* 現在の状況 */}
+              <div style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleAddAttribute('currentStatus')}
+                  style={{ marginRight: '5px' }}
+                >
+                  + 現在の状況
+                </button>
+                <button
+                  onClick={() => toggleAttributeHelp('currentStatus')}
+                  style={{
+                    background: 'none',
+                    border: '1px solid #007bff',
+                    borderRadius: '50%',
+                    width: '25px',
+                    height: '25px',
+                    cursor: 'pointer',
+                    color: '#007bff',
+                    fontSize: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="現在の状況・使い方を表示"
+                >
+                  ?
+                </button>
+              </div>
+
+              {/* 背景設定 */}
+              <div style={{ display: 'inline-block', marginBottom: '5px' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleAddAttribute('backstory')}
+                  style={{ marginRight: '5px' }}
+                >
+                  + 背景設定
+                </button>
+                <button
+                  onClick={() => toggleAttributeHelp('backstory')}
+                  style={{
+                    background: 'none',
+                    border: '1px solid #007bff',
+                    borderRadius: '50%',
+                    width: '25px',
+                    height: '25px',
+                    cursor: 'pointer',
+                    color: '#007bff',
+                    fontSize: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="背景設定・使い方を表示"
+                >
+                  ?
+                </button>
+              </div>
             </div>
+
+            {/* ヘルプ表示エリア */}
+            {Object.keys(showAttributeHelp).map(type =>
+              showAttributeHelp[type] && (
+                <div
+                  key={type}
+                  style={{
+                    background: '#f8f9fa',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '6px',
+                    padding: '15px',
+                    marginBottom: '15px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    <h5 style={{ margin: 0, color: '#495057' }}>
+                      📝 {getAttributeInfo(type).title}
+                    </h5>
+                    <button
+                      onClick={() => toggleAttributeHelp(type)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#6c757d',
+                        cursor: 'pointer',
+                        fontSize: '18px',
+                        lineHeight: 1
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <p style={{ color: '#6c757d', marginBottom: '12px', fontSize: '14px' }}>
+                    {getAttributeInfo(type).description}
+                  </p>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong style={{ color: '#495057', fontSize: '13px' }}>記入例:</strong>
+                    {getAttributeInfo(type).examples.map((example, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #e9ecef',
+                          borderRadius: '4px',
+                          padding: '8px 10px',
+                          marginTop: '6px',
+                          fontSize: '13px',
+                          color: '#495057',
+                          lineHeight: '1.4'
+                        }}
+                      >
+                        {example}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <button
+                      className="btn btn-success"
+                      onClick={() => {
+                        handleAddAttribute(type);
+                        toggleAttributeHelp(type);
+                      }}
+                      style={{ fontSize: '13px', padding: '6px 12px' }}
+                    >
+                      + {getAttributeLabel(type)}を追加
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
 
             {formData.attributes.map((attr, index) => (
               <div key={index} style={{ marginBottom: '15px' }}>
@@ -426,6 +643,11 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
                   className="form-textarea"
                   value={attr.content}
                   onChange={(e) => handleAttributeChange(index, e.target.value)}
+                  placeholder={getAttributeInfo(attr.type).placeholder}
+                  style={{
+                    minHeight: '80px',
+                    resize: 'vertical'
+                  }}
                 />
               </div>
             ))}
