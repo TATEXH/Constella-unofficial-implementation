@@ -22,6 +22,7 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
     journals: [],
     comments: []
   });
+  const [isGeneratingFriends, setIsGeneratingFriends] = useState(false);
 
   useEffect(() => {
     if (character) {
@@ -156,17 +157,20 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
 
   const handleFriendsDiscovery = async () => {
     if (!character || !relationshipPhrase) return;
-    
+
+    setIsGeneratingFriends(true);
     try {
       const result = await api.generateFriends(
-        character.id || character._id, 
+        character.id || character._id,
         relationshipPhrase
       );
       setGeneratedCharacters(result.characters || []);
       setShowDiscoveryModal(true);
     } catch (error) {
       console.error('Friends Discovery エラー:', error);
-      alert('キャラクター生成に失敗しました。');
+      alert('キャラクター生成に失敗しました。しばらく待ってから再試行してください。');
+    } finally {
+      setIsGeneratingFriends(false);
     }
   };
 
@@ -462,13 +466,46 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
               value={relationshipPhrase}
               onChange={(e) => setRelationshipPhrase(e.target.value)}
             />
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleFriendsDiscovery}
-              style={{ marginTop: '10px' }}
+              disabled={isGeneratingFriends}
+              style={{
+                marginTop: '10px',
+                opacity: isGeneratingFriends ? 0.7 : 1
+              }}
             >
-              新しいキャラクターを生成
+              {isGeneratingFriends ? (
+                <>
+                  <span style={{
+                    display: 'inline-block',
+                    marginRight: '8px',
+                    animation: 'spin 1s linear infinite'
+                  }}>⏳</span>
+                  キャラクター生成中...
+                </>
+              ) : (
+                '新しいキャラクターを生成'
+              )}
             </button>
+
+            {/* Friends Discovery 生成状況の表示 */}
+            {isGeneratingFriends && (
+              <div style={{
+                marginTop: '10px',
+                padding: '8px 12px',
+                background: '#e3f2fd',
+                border: '1px solid #bbdefb',
+                borderRadius: '4px',
+                fontSize: '13px',
+                color: '#1976d2'
+              }}>
+                <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: '6px' }}>
+                  🤖
+                </span>
+                AIが新しいキャラクターを生成しています...しばらくお待ちください
+              </div>
+            )}
           </div>
 
           <div className="form-group">
