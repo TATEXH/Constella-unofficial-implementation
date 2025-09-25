@@ -10,6 +10,10 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
   const [editContent, setEditContent] = useState('');
   const [replyingTo, setReplyingTo] = useState(null); // 返信対象のコメントID
 
+  // ローディング状態管理
+  const [isGeneratingJournal, setIsGeneratingJournal] = useState(false);
+  const [generatingComments, setGeneratingComments] = useState(new Set()); // 生成中のコメントID
+
   useEffect(() => {
     // 各ジャーナルのコメントを読み込み
     journals.forEach(journal => {
@@ -35,6 +39,7 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
       return;
     }
 
+    setIsGeneratingJournal(true);
     try {
       await api.generateJournals(selectedCharacters, theme);
       onUpdate();
@@ -43,6 +48,9 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
       setTheme('');
     } catch (error) {
       console.error('ジャーナル生成エラー:', error);
+      alert('ジャーナル生成に失敗しました。しばらく待ってから再試行してください。');
+    } finally {
+      setIsGeneratingJournal(false);
     }
   };
 
@@ -55,12 +63,22 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
   };
 
   const handleGenerateComment = async (journalId, characterId, parentCommentId = null) => {
+    const commentKey = `${journalId}-${characterId}-${parentCommentId || 'root'}`;
+
+    setGeneratingComments(prev => new Set(prev).add(commentKey));
     try {
       await api.generateComment(journalId, characterId, parentCommentId);
       loadComments(journalId);
       setReplyingTo(null); // 返信モードをリセット
     } catch (error) {
       console.error('コメント生成エラー:', error);
+      alert('コメント生成に失敗しました。しばらく待ってから再試行してください。');
+    } finally {
+      setGeneratingComments(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(commentKey);
+        return newSet;
+      });
     }
   };
 
@@ -193,19 +211,47 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
                       }
                     }}
                     style={{ width: '100%' }}
+                    disabled={Array.from(generatingComments).some(key =>
+                      key.startsWith(`${journalId}-`) && key.endsWith(`-${commentId}`))}
                   >
-                    <option value="">返信するキャラクターを選択</option>
-                    {characters
-                      .filter(c => (c.id || c._id) !== comment.character_id)
-                      .map(character => (
-                        <option
-                          key={character.id || character._id}
-                          value={character.id || character._id}
-                        >
-                          {character.name}
-                        </option>
-                      ))}
+                    {Array.from(generatingComments).some(key =>
+                      key.startsWith(`${journalId}-`) && key.endsWith(`-${commentId}`)) ? (
+                      <option value="">🔄 返信生成中...</option>
+                    ) : (
+                      <>
+                        <option value="">返信するキャラクターを選択</option>
+                        {characters
+                          .filter(c => (c.id || c._id) !== comment.character_id)
+                          .map(character => (
+                            <option
+                              key={character.id || character._id}
+                              value={character.id || character._id}
+                            >
+                              {character.name}
+                            </option>
+                          ))}
+                      </>
+                    )}
                   </select>
+
+                  {/* 返信生成状況の表示 */}
+                  {Array.from(generatingComments).some(key =>
+                    key.startsWith(`${journalId}-`) && key.endsWith(`-${commentId}`)) && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '4px 8px',
+                      background: '#d4edda',
+                      border: '1px solid #c3e6cb',
+                      borderRadius: '3px',
+                      fontSize: '11px',
+                      color: '#155724'
+                    }}>
+                      <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: '4px' }}>
+                        ⏳
+                      </span>
+                      返信を生成中...
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -289,11 +335,27 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
             />
           </div>
 
-          <button 
+          <button
             className="btn btn-success"
             onClick={handleGenerateJournals}
+            disabled={isGeneratingJournal}
+            style={{
+              position: 'relative',
+              opacity: isGeneratingJournal ? 0.7 : 1
+            }}
           >
-            ジャーナルを生成
+            {isGeneratingJournal ? (
+              <>
+                <span style={{
+                  display: 'inline-block',
+                  marginRight: '8px',
+                  animation: 'spin 1s linear infinite'
+                }}>⏳</span>
+                生成中...
+              </>
+            ) : (
+              'ジャーナルを生成'
+            )}
           </button>
         </div>
       )}
@@ -367,7 +429,7 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
               <h4>コメント</h4>
               
               <div style={{ marginTop: '10px' }}>
-                <select 
+                <select
                   onChange={(e) => {
                     if (e.target.value) {
                       handleGenerateComment(journal.id || journal._id, e.target.value);
@@ -375,19 +437,46 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
                     }
                   }}
                   style={{ marginRight: '10px' }}
+                  disabled={Array.from(generatingComments).some(key =>
+                    key.startsWith(`${journal.id || journal._id}-`) && key.endsWith('-root'))}
                 >
-                  <option value="">コメントするキャラクターを選択</option>
-                  {characters
-                    .filter(c => (c.id || c._id) !== journal.character_id)
-                    .map(character => (
-                      <option 
-                        key={character.id || character._id} 
-                        value={character.id || character._id}
-                      >
-                        {character.name}
-                      </option>
-                    ))}
+                  {Array.from(generatingComments).some(key =>
+                    key.startsWith(`${journal.id || journal._id}-`) && key.endsWith('-root')) ? (
+                    <option value="">🔄 コメント生成中...</option>
+                  ) : (
+                    <>
+                      <option value="">コメントするキャラクターを選択</option>
+                      {characters
+                        .filter(c => (c.id || c._id) !== journal.character_id)
+                        .map(character => (
+                          <option
+                            key={character.id || character._id}
+                            value={character.id || character._id}
+                          >
+                            {character.name}
+                          </option>
+                        ))}
+                    </>
+                  )}
                 </select>
+
+                {/* コメント生成状況の表示 */}
+                {Array.from(generatingComments).some(key => key.startsWith(journal.id || journal._id)) && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '6px 10px',
+                    background: '#fff3cd',
+                    border: '1px solid #ffeaa7',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    color: '#856404'
+                  }}>
+                    <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: '6px' }}>
+                      ⏳
+                    </span>
+                    AIがコメントを生成しています...
+                  </div>
+                )}
               </div>
 
               <div className="comments-list" style={{ marginTop: '15px' }}>
