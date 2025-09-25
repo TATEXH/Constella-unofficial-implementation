@@ -556,37 +556,101 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
             <h3 style={{ marginBottom: '15px' }}>ジャーナル履歴 ({characterHistory.journals.length}件)</h3>
             {characterHistory.journals.length > 0 ? (
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {characterHistory.journals.map((journal, index) => (
-                  <div
-                    key={journal.id || journal._id}
-                    style={{
-                      background: '#f8f9fa',
-                      padding: '15px',
-                      borderRadius: '8px',
-                      marginBottom: '10px'
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginBottom: '10px'
-                    }}>
-                      <strong>テーマ: {journal.theme}</strong>
-                      <span style={{ color: '#7f8c8d', fontSize: '12px' }}>
-                        {new Date(journal.created_at).toLocaleDateString('ja-JP')}
-                      </span>
-                    </div>
-                    <div style={{
-                      maxHeight: '100px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      fontSize: '14px',
-                      color: '#495057'
-                    }}>
-                      {journal.content}
-                    </div>
-                  </div>
-                ))}
+                {characterHistory.journals
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  .map((journal, index) => {
+                    const relatedComments = characterHistory.comments.filter(c =>
+                      (c.journal_id === (journal.id || journal._id))
+                    );
+
+                    return (
+                      <div
+                        key={journal.id || journal._id}
+                        style={{
+                          background: '#f8f9fa',
+                          padding: '15px',
+                          borderRadius: '8px',
+                          marginBottom: '10px',
+                          border: '1px solid #e9ecef'
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '10px'
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <strong style={{ color: '#495057' }}>📖 {journal.theme}</strong>
+                            <div style={{
+                              fontSize: '11px',
+                              color: '#6c757d',
+                              marginTop: '2px'
+                            }}>
+                              投稿日時: {new Date(journal.created_at).toLocaleString('ja-JP')}
+                            </div>
+                          </div>
+
+                          {relatedComments.length > 0 && (
+                            <div style={{
+                              background: '#fff3cd',
+                              color: '#856404',
+                              padding: '3px 8px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              marginLeft: '10px'
+                            }}>
+                              💬 {relatedComments.length}件のコメント
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{
+                          maxHeight: '120px',
+                          overflow: 'hidden',
+                          fontSize: '14px',
+                          color: '#495057',
+                          lineHeight: '1.4',
+                          position: 'relative'
+                        }}>
+                          {journal.content}
+                          {journal.content.length > 200 && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              right: 0,
+                              background: 'linear-gradient(to right, transparent, #f8f9fa)',
+                              padding: '0 5px',
+                              fontSize: '12px',
+                              color: '#6c757d',
+                              fontStyle: 'italic'
+                            }}>
+                              ...続きを読む
+                            </div>
+                          )}
+                        </div>
+
+                        {relatedComments.length > 0 && (
+                          <div style={{
+                            marginTop: '10px',
+                            padding: '8px',
+                            background: '#fff',
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}>
+                            <div style={{ color: '#6c757d', marginBottom: '5px' }}>
+                              最新コメント:
+                            </div>
+                            <div style={{ color: '#495057', fontStyle: 'italic' }}>
+                              "{relatedComments[relatedComments.length - 1].content.substring(0, 80)}
+                              {relatedComments[relatedComments.length - 1].content.length > 80 ? '...' : ''}"
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             ) : (
               <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>
@@ -599,33 +663,73 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
             <h3 style={{ marginBottom: '15px' }}>コメント履歴 ({characterHistory.comments.length}件)</h3>
             {characterHistory.comments.length > 0 ? (
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {characterHistory.comments.map((comment, index) => (
-                  <div
-                    key={comment.id || comment._id}
-                    style={{
-                      background: '#fff',
-                      padding: '12px',
-                      borderRadius: '6px',
-                      marginBottom: '8px',
-                      border: '1px solid #e9ecef'
-                    }}
-                  >
-                    <div style={{
-                      fontSize: '14px',
-                      color: '#495057',
-                      marginBottom: '5px'
-                    }}>
-                      {comment.content}
+                {characterHistory.comments.map((comment, index) => {
+                  const relatedJournal = characterHistory.journals.find(j =>
+                    (j.id || j._id) === comment.journal_id
+                  );
+                  const isReply = comment.parent_comment_id;
+
+                  return (
+                    <div
+                      key={comment.id || comment._id}
+                      style={{
+                        background: isReply ? '#f8f9fa' : '#fff',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        marginBottom: '8px',
+                        border: `1px solid ${isReply ? '#6c757d' : '#e9ecef'}`,
+                        marginLeft: isReply ? '15px' : '0'
+                      }}
+                    >
+                      {/* コメント種別の表示 */}
+                      <div style={{
+                        fontSize: '11px',
+                        color: '#6c757d',
+                        marginBottom: '5px',
+                        fontWeight: 'bold'
+                      }}>
+                        {isReply ? '↳ 返信コメント' : '💬 コメント'}
+                        {relatedJournal && (
+                          <span style={{ marginLeft: '10px', fontWeight: 'normal' }}>
+                            ジャーナル: {relatedJournal.theme}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#495057',
+                        marginBottom: '8px',
+                        lineHeight: '1.4'
+                      }}>
+                        {comment.content}
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '11px',
+                        color: '#adb5bd'
+                      }}>
+                        <span>
+                          {isReply ? '返信日時' : '投稿日時'}: {new Date(comment.created_at).toLocaleString('ja-JP')}
+                        </span>
+                        {relatedJournal && (
+                          <span style={{
+                            background: '#e3f2fd',
+                            color: '#1976d2',
+                            padding: '2px 6px',
+                            borderRadius: '3px',
+                            fontSize: '10px'
+                          }}>
+                            {new Date(relatedJournal.created_at).toLocaleDateString('ja-JP')}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div style={{
-                      fontSize: '11px',
-                      color: '#adb5bd',
-                      textAlign: 'right'
-                    }}>
-                      {new Date(comment.created_at).toLocaleString('ja-JP')}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>
