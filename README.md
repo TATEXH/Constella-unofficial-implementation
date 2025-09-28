@@ -6,6 +6,17 @@ AI支援によるクリエイティブライティングシステム
 
 Constellaは、AI（Ollama）を活用してストーリーテリングを支援するWebアプリケーションです。キャラクター作成、ジャーナル生成、コメント機能を通じて、創作活動を効率化し、新しいアイデアの発見を促進します。
 
+### 📄 学術論文
+
+このプロジェクトは以下の研究論文に基づいて実装されています：
+
+**"Constella: A Multi-LLM, Multi-Agent Architecture for Automated Story Generation"**
+- **arXiv論文**: [https://www.arxiv.org/abs/2507.05820](https://www.arxiv.org/abs/2507.05820)
+- **概要**: マルチLLM・マルチエージェントアーキテクチャを用いた自動ストーリー生成システムの研究
+- **主要機能**: Friends Discovery、Journals、Comments の3つのAI支援機能
+
+本実装では論文で提案されたコンセプトを基に、実用的なWebアプリケーションとして開発されています。
+
 ## 主な機能
 
 ### 🎭 キャラクター管理
@@ -224,6 +235,23 @@ cd backend && mypy .
 
 例: [キャラクター管理] 属性編集機能を追加
 ```
+
+## 引用・参考文献
+
+このプロジェクトの実装は以下の研究論文に基づいています：
+
+```bibtex
+@article{constella2024,
+  title={Constella: A Multi-LLM, Multi-Agent Architecture for Automated Story Generation},
+  author={[著者名]},
+  journal={arXiv preprint arXiv:2507.05820},
+  year={2024},
+  url={https://www.arxiv.org/abs/2507.05820}
+}
+```
+
+**論文概要:**
+マルチLLM・マルチエージェントアーキテクチャを用いた自動ストーリー生成システムの研究。Friends Discovery、Journals、Commentsの3つの主要機能を通じて、創作者の創造性を支援するフレームワークを提案。
 
 ## ライセンス
 
