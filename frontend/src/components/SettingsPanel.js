@@ -4,7 +4,6 @@ import axios from 'axios';
 
 const SettingsPanel = ({ onClose }) => {
   const [providers, setProviders] = useState([]);
-  const [currentSettings, setCurrentSettings] = useState(null);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,7 +29,6 @@ const SettingsPanel = ({ onClose }) => {
     try {
       setLoading(true);
       const response = await axios.get('/api/settings/ai-provider');
-      setCurrentSettings(response.data);
       setFormData(response.data);
     } catch (error) {
       setAlert({ type: 'danger', message: '現在の設定の取得に失敗しました' });
