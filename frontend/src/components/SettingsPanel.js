@@ -112,14 +112,15 @@ const SettingsPanel = ({ onClose }) => {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>モデル</Form.Label>
-              <Form.Select
+              <Form.Control
+                type="text"
                 value={formData.ollama_model || ''}
                 onChange={(e) => handleInputChange('ollama_model', e.target.value)}
-              >
-                {provider.available_models.map(model => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
-              </Form.Select>
+                placeholder="gpt-oss:20B"
+              />
+              <Form.Text className="text-muted">
+                利用可能モデル例: {provider.available_models.join(', ')}
+              </Form.Text>
             </Form.Group>
           </div>
         );
@@ -147,14 +148,15 @@ const SettingsPanel = ({ onClose }) => {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>モデル</Form.Label>
-              <Form.Select
+              <Form.Control
+                type="text"
                 value={formData.openai_model || ''}
                 onChange={(e) => handleInputChange('openai_model', e.target.value)}
-              >
-                {provider.available_models.map(model => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
-              </Form.Select>
+                placeholder="gpt-4"
+              />
+              <Form.Text className="text-muted">
+                利用可能モデル例: {provider.available_models.join(', ')}
+              </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Base URL（カスタムエンドポイント用）</Form.Label>
@@ -191,14 +193,15 @@ const SettingsPanel = ({ onClose }) => {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>モデル</Form.Label>
-              <Form.Select
+              <Form.Control
+                type="text"
                 value={formData.anthropic_model || ''}
                 onChange={(e) => handleInputChange('anthropic_model', e.target.value)}
-              >
-                {provider.available_models.map(model => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
-              </Form.Select>
+                placeholder="claude-3-sonnet-20240229"
+              />
+              <Form.Text className="text-muted">
+                利用可能モデル例: {provider.available_models.join(', ')}
+              </Form.Text>
             </Form.Group>
           </div>
         );
@@ -226,14 +229,15 @@ const SettingsPanel = ({ onClose }) => {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>モデル</Form.Label>
-              <Form.Select
+              <Form.Control
+                type="text"
                 value={formData.google_model || ''}
                 onChange={(e) => handleInputChange('google_model', e.target.value)}
-              >
-                {provider.available_models.map(model => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
-              </Form.Select>
+                placeholder="gemini-pro"
+              />
+              <Form.Text className="text-muted">
+                利用可能モデル例: {provider.available_models.join(', ')}
+              </Form.Text>
             </Form.Group>
           </div>
         );

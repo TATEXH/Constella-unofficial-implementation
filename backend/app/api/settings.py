@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Literal
 from app.core.config import settings, AIProvider
+from app.core.env_manager import env_manager
 
 router = APIRouter()
 
@@ -103,36 +104,69 @@ async def get_current_provider() -> AIProviderSettings:
 async def update_provider_settings(provider_settings: AIProviderSettings):
     """AI プロバイダー設定を更新"""
     try:
-        # 現在の設定を更新
-        settings.ai_provider = provider_settings.provider
+        # .envファイルに書き込む変数を収集
+        env_updates = {}
+
+        # AI プロバイダー選択
+        env_updates["AI_PROVIDER"] = provider_settings.provider
 
         # Ollama設定
+        if provider_settings.ollama_api_url:
+            env_updates["OLLAMA_API_URL"] = provider_settings.ollama_api_url
+        if provider_settings.ollama_model:
+            env_updates["OLLAMA_MODEL"] = provider_settings.ollama_model
+
+        # OpenAI設定
+        if provider_settings.openai_api_key and provider_settings.openai_api_key != "***":
+            env_updates["OPENAI_API_KEY"] = provider_settings.openai_api_key
+        if provider_settings.openai_model:
+            env_updates["OPENAI_MODEL"] = provider_settings.openai_model
+        if provider_settings.openai_base_url:
+            env_updates["OPENAI_BASE_URL"] = provider_settings.openai_base_url
+
+        # Anthropic設定
+        if provider_settings.anthropic_api_key and provider_settings.anthropic_api_key != "***":
+            env_updates["ANTHROPIC_API_KEY"] = provider_settings.anthropic_api_key
+        if provider_settings.anthropic_model:
+            env_updates["ANTHROPIC_MODEL"] = provider_settings.anthropic_model
+
+        # Google設定
+        if provider_settings.google_api_key and provider_settings.google_api_key != "***":
+            env_updates["GOOGLE_API_KEY"] = provider_settings.google_api_key
+        if provider_settings.google_model:
+            env_updates["GOOGLE_MODEL"] = provider_settings.google_model
+
+        # .envファイルに一括書き込み
+        success = env_manager.update_multiple_env_variables(env_updates)
+
+        if not success:
+            raise HTTPException(status_code=500, detail="設定ファイルの更新に失敗しました")
+
+        # メモリ内の設定も更新（即座反映のため）
+        settings.ai_provider = provider_settings.provider
         if provider_settings.ollama_api_url:
             settings.ollama_api_url = provider_settings.ollama_api_url
         if provider_settings.ollama_model:
             settings.ollama_model = provider_settings.ollama_model
-
-        # OpenAI設定
         if provider_settings.openai_api_key and provider_settings.openai_api_key != "***":
             settings.openai_api_key = provider_settings.openai_api_key
         if provider_settings.openai_model:
             settings.openai_model = provider_settings.openai_model
         if provider_settings.openai_base_url:
             settings.openai_base_url = provider_settings.openai_base_url
-
-        # Anthropic設定
         if provider_settings.anthropic_api_key and provider_settings.anthropic_api_key != "***":
             settings.anthropic_api_key = provider_settings.anthropic_api_key
         if provider_settings.anthropic_model:
             settings.anthropic_model = provider_settings.anthropic_model
-
-        # Google設定
         if provider_settings.google_api_key and provider_settings.google_api_key != "***":
             settings.google_api_key = provider_settings.google_api_key
         if provider_settings.google_model:
             settings.google_model = provider_settings.google_model
 
-        return {"message": "設定を更新しました"}
+        return {
+            "message": "設定を更新しました",
+            "note": "設定は.envファイルに保存され、アプリ再起動後も維持されます"
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"設定の更新に失敗しました: {str(e)}")
