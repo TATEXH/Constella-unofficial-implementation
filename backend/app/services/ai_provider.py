@@ -1,0 +1,173 @@
+"""AI プロバイダー抽象化レイヤー"""
+import httpx
+from abc import ABC, abstractmethod
+from typing import Dict, Any, List, Optional
+from app.core.config import settings, AIProvider
+
+
+class BaseAIProvider(ABC):
+    """AI プロバイダーの基底クラス"""
+
+    @abstractmethod
+    async def generate_text(self, prompt: str) -> str:
+        """テキスト生成"""
+        pass
+
+
+class OllamaProvider(BaseAIProvider):
+    """Ollama プロバイダー"""
+
+    async def generate_text(self, prompt: str) -> str:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                response = await client.post(
+                    f"{settings.ollama_api_url}/api/generate",
+                    json={
+                        "model": settings.ollama_model,
+                        "prompt": prompt,
+                        "stream": False
+                    }
+                )
+                response.raise_for_status()
+                result = response.json()
+                return result.get("response", "")
+            except httpx.RequestError as e:
+                print(f"Ollama API呼び出しエラー: {e}")
+                raise
+            except Exception as e:
+                print(f"予期しないエラー: {e}")
+                raise
+
+
+class OpenAIProvider(BaseAIProvider):
+    """OpenAI プロバイダー"""
+
+    async def generate_text(self, prompt: str) -> str:
+        if not settings.openai_api_key:
+            raise ValueError("OpenAI API キーが設定されていません")
+
+        headers = {
+            "Authorization": f"Bearer {settings.openai_api_key}",
+            "Content-Type": "application/json"
+        }
+
+        base_url = settings.openai_base_url or "https://api.openai.com/v1"
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                response = await client.post(
+                    f"{base_url}/chat/completions",
+                    headers=headers,
+                    json={
+                        "model": settings.openai_model,
+                        "messages": [
+                            {"role": "user", "content": prompt}
+                        ],
+                        "max_tokens": 2000,
+                        "temperature": 0.7
+                    }
+                )
+                response.raise_for_status()
+                result = response.json()
+                return result["choices"][0]["message"]["content"]
+            except httpx.RequestError as e:
+                print(f"OpenAI API呼び出しエラー: {e}")
+                raise
+            except Exception as e:
+                print(f"予期しないエラー: {e}")
+                raise
+
+
+class AnthropicProvider(BaseAIProvider):
+    """Anthropic Claude プロバイダー"""
+
+    async def generate_text(self, prompt: str) -> str:
+        if not settings.anthropic_api_key:
+            raise ValueError("Anthropic API キーが設定されていません")
+
+        headers = {
+            "x-api-key": settings.anthropic_api_key,
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01"
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers=headers,
+                    json={
+                        "model": settings.anthropic_model,
+                        "max_tokens": 2000,
+                        "messages": [
+                            {"role": "user", "content": prompt}
+                        ]
+                    }
+                )
+                response.raise_for_status()
+                result = response.json()
+                return result["content"][0]["text"]
+            except httpx.RequestError as e:
+                print(f"Anthropic API呼び出しエラー: {e}")
+                raise
+            except Exception as e:
+                print(f"予期しないエラー: {e}")
+                raise
+
+
+class GoogleProvider(BaseAIProvider):
+    """Google Gemini プロバイダー"""
+
+    async def generate_text(self, prompt: str) -> str:
+        if not settings.google_api_key:
+            raise ValueError("Google API キーが設定されていません")
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                response = await client.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{settings.google_model}:generateContent?key={settings.google_api_key}",
+                    json={
+                        "contents": [
+                            {
+                                "parts": [
+                                    {"text": prompt}
+                                ]
+                            }
+                        ],
+                        "generationConfig": {
+                            "temperature": 0.7,
+                            "maxOutputTokens": 2000
+                        }
+                    }
+                )
+                response.raise_for_status()
+                result = response.json()
+                return result["candidates"][0]["content"]["parts"][0]["text"]
+            except httpx.RequestError as e:
+                print(f"Google API呼び出しエラー: {e}")
+                raise
+            except Exception as e:
+                print(f"予期しないエラー: {e}")
+                raise
+
+
+def get_ai_provider() -> BaseAIProvider:
+    """現在の設定に基づいてAI プロバイダーを取得"""
+    provider_map = {
+        "ollama": OllamaProvider,
+        "openai": OpenAIProvider,
+        "anthropic": AnthropicProvider,
+        "google": GoogleProvider
+    }
+
+    provider_class = provider_map.get(settings.ai_provider)
+    if not provider_class:
+        raise ValueError(f"未対応のAI プロバイダー: {settings.ai_provider}")
+
+    return provider_class()
+
+
+async def generate_text(prompt: str) -> str:
+    """統一API: テキスト生成"""
+    provider = get_ai_provider()
+    return await provider.generate_text(prompt)
