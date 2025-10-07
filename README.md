@@ -207,7 +207,7 @@ API_PORT=8000
 AI_PROVIDER=ollama
 
 # Ollama設定（デフォルト）
-OLLAMA_API_URL=http://192.168.1.7:11434
+OLLAMA_API_URL=http://192.168.1.1:11434
 OLLAMA_MODEL=gpt-oss:20B
 
 # OpenAI設定（オプション）
@@ -223,6 +223,12 @@ ANTHROPIC_MODEL=claude-3-sonnet-20240229
 GOOGLE_API_KEY=your_google_api_key_here
 GOOGLE_MODEL=gemini-pro
 ```
+
+**📝 環境変数について**:
+- `.env.example`をコピーして`.env`ファイルを作成
+- 実際のAPIキーは**UI設定画面から入力**することを推奨
+- 手動で`.env`を編集する場合は、`your_xxx_api_key_here`を実際のAPIキーに置換
+- `.env`ファイルは自動的にGit管理から除外されます
 
 ## AI プロバイダー設定詳細
 
@@ -363,6 +369,15 @@ GOOGLE_MODEL=gemini-pro
 3. **API設定**を入力（Ollama以外はAPIキーが必要）
 4. **接続テスト**ボタンで動作確認
 5. **設定を保存**で確定
+
+### 🔐 APIキーの安全な管理
+
+- **自動保存**: 設定したAPIキーは`.env`ファイルに暗号化せずに保存されます
+- **Git保護**: `.env`ファイルは`.gitignore`で除外済みのため、GitHubにプッシュされません
+- **永続化**: アプリケーション再起動後も設定が維持されます
+- **ローカル管理**: APIキーはローカル環境のみに保存され、外部サーバーには送信されません
+
+**⚠️ 重要**: APIキーは機密情報です。`.env`ファイルを他人と共有したり、バージョン管理システムにコミットしないよう注意してください。
 
 ## API エンドポイント
 

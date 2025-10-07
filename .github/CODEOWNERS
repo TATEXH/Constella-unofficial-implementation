@@ -1,0 +1,15 @@
+# Constella Project Code Owners
+# 詳細: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# すべてのファイルの所有者
+* @TATEXH
+
+# 特定ディレクトリの所有者
+/.github/ @TATEXH
+/backend/ @TATEXH
+/frontend/ @TATEXH
+/samples_chara/ @TATEXH
+/docker-compose.yml @TATEXH
+/README.md @TATEXH
+/LICENSE @TATEXH
+/.env.example @TATEXH
