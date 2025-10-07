@@ -146,6 +146,9 @@ Constellaは、複数のAIプロバイダー（Ollama、OpenAI GPT-4、Anthropic
 - **Motor** - 非同期MongoDBドライバー
 - **Pydantic** - データ検証
 
+**📌 実装上の変更点:**
+元の論文ではバックエンドに**Node.js**が使用されていますが、本実装では**Python + FastAPI**に変更されています。これは開発効率とAI統合の容易さを考慮した独自の技術選択です。
+
 ### AI・その他
 - **マルチAIプロバイダー対応**:
   - **Ollama** - ローカルLLM実行環境
