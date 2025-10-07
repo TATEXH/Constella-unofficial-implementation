@@ -2,9 +2,40 @@
 
 AI支援によるクリエイティブライティングシステム
 
+> **🚨 免責事項**
+> 本実装は**非公式**であり、原論文の著者とは一切関係ありません。
+> 学術論文を参考にした独立した実装であり、論文著者による承認・推奨を受けたものではありません。
+
 ## 概要
 
-Constellaは、AI（Ollama）を活用してストーリーテリングを支援するWebアプリケーションです。キャラクター作成、ジャーナル生成、コメント機能を通じて、創作活動を効率化し、新しいアイデアの発見を促進します。
+Constellaは、複数のAIプロバイダー（Ollama、OpenAI GPT-4、Anthropic Claude、Google Gemini）を活用してストーリーテリングを支援するWebアプリケーションです。キャラクター作成、ジャーナル生成、コメント機能を通じて、創作活動を効率化し、新しいアイデアの発見を促進します。
+
+**⚠️ 重要事項:** 本プロジェクトは学術研究論文の概念実証として開発されており、プルリクエストやIssuesの受け付けは行っておりません。MITライセンスの下で自由にご利用いただけますが、サポートや継続的な開発は予定されていません。
+
+## スクリーンショット
+
+### キャラクター編集画面
+![キャラクター編集画面](images/スクリーンショット%202025-10-07%20205117.png)
+
+### ジャーナル・コメント機能
+![ジャーナル・コメント機能](images/スクリーンショット%202025-10-07%20205531.png)
+
+### 📄 学術論文
+
+このプロジェクトは以下の研究論文に基づいて実装されています：
+
+**"Constella: A Multi-LLM, Multi-Agent Architecture for Automated Story Generation"**
+- **arXiv論文**: [https://www.arxiv.org/abs/2507.05820](https://www.arxiv.org/abs/2507.05820)
+- **概要**: マルチLLM・マルチエージェントアーキテクチャを用いた自動ストーリー生成システムの研究
+- **主要機能**: Friends Discovery、Journals、Comments の3つのAI支援機能
+
+**⚠️ 重要**: 本実装は論文で提案されたコンセプトを参考にした**非公式の独立実装**です。論文著者による開発・監修・承認を受けたものではありません。
+
+**📌 プロジェクトの位置づけ:**
+- 学術研究の概念実証（Proof of Concept）として実装
+- 論文で提案された技術的アプローチの実証
+- 商用製品や継続的なサービス提供を目的としない
+- コミュニティによる独自フォーク・改良を歓迎
 
 ## 主な機能
 
@@ -20,6 +51,7 @@ Constellaは、AI（Ollama）を活用してストーリーテリングを支援
 - **ジャーナル生成**: キャラクターの視点から日記形式のエントリーを生成
 - **コメント生成**: ジャーナルに対する他キャラクターからのコメントを生成
 - **スレッド機能**: コメントの返信・階層表示
+- **マルチAI対応**: Ollama、OpenAI、Anthropic、Googleの各プロバイダーから選択可能
 
 ### 💬 インタラクション機能
 - **コメントスレッド**: 返信機能付きの階層コメント表示
@@ -122,8 +154,15 @@ Constellaは、AI（Ollama）を活用してストーリーテリングを支援
 - **Motor** - 非同期MongoDBドライバー
 - **Pydantic** - データ検証
 
+**📌 実装上の変更点:**
+元の論文ではバックエンドに**Node.js**が使用されていますが、本実装では**Python + FastAPI**に変更されています。これは開発効率とAI統合の容易さを考慮した独自の技術選択です。
+
 ### AI・その他
-- **Ollama** - AI モデル実行環境
+- **マルチAIプロバイダー対応**:
+  - **Ollama** - ローカルLLM実行環境
+  - **OpenAI API** - GPT-4、GPT-3.5等
+  - **Anthropic API** - Claude 3 Sonnet、Opus等
+  - **Google AI API** - Gemini Pro等
 - **Docker** - コンテナ化
 - **uvicorn** - ASGI サーバー
 
@@ -131,7 +170,13 @@ Constellaは、AI（Ollama）を活用してストーリーテリングを支援
 
 ### 必要な環境
 - Docker & Docker Compose
-- Ollama（gpt-oss:20B モデル）
+- 以下のいずれかのAIプロバイダー:
+  - **Ollama**（ローカル実行、APIキー不要）✅ 動作確認済み
+  - **OpenAI API**（GPT-4等、APIキー必要）⚠️ 未検証
+  - **Anthropic API**（Claude等、APIキー必要）⚠️ 未検証
+  - **Google AI API**（Gemini等、APIキー必要）⚠️ 未検証
+
+**注意**: Ollama以外のプロバイダーは実装されていますが、動作確認を行っていません。使用する場合は自己責任でお願いします。
 
 ### 起動手順
 
@@ -159,15 +204,142 @@ docker-compose up -d
 - **バックエンド API**: http://localhost:8000
 - **MongoDB管理**: http://localhost:8081
 
+5. **AI プロバイダー設定**
+   - フロントエンドの左サイドバーの⚙️ボタンをクリック
+   - 使用したいAIプロバイダーを選択して設定
+
 ### 環境変数
 
 ```env
+# 基本設定
 MONGODB_URL=mongodb://admin:constella_password_2024@localhost:27017/constella?authSource=admin
-OLLAMA_API_URL=http://192.168.1.7:11434
-OLLAMA_MODEL=gpt-oss:20B
 UPLOAD_DIR=/app/uploads
 API_PORT=8000
+
+# AI プロバイダー選択
+AI_PROVIDER=ollama
+
+# Ollama設定（デフォルト）
+OLLAMA_API_URL=http://192.168.1.1:11434
+OLLAMA_MODEL=gpt-oss:20B
+
+# OpenAI設定（オプション）
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4
+OPENAI_BASE_URL=https://api.openai.com/v1
+
+# Anthropic設定（オプション）
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+ANTHROPIC_MODEL=claude-3-sonnet-20240229
+
+# Google AI設定（オプション）
+GOOGLE_API_KEY=your_google_api_key_here
+GOOGLE_MODEL=gemini-pro
 ```
+
+**📝 環境変数について**:
+- `.env.example`をコピーして`.env`ファイルを作成
+- 実際のAPIキーは**UI設定画面から入力**することを推奨
+- 手動で`.env`を編集する場合は、`your_xxx_api_key_here`を実際のAPIキーに置換
+- `.env`ファイルは自動的にGit管理から除外されます
+
+## AI プロバイダー設定詳細
+
+### 🏠 Ollama（ローカル実行）
+
+**特徴**:
+- APIキー不要
+- ローカルでプライベートに実行
+- インターネット接続不要（初回モデルダウンロード後）
+
+**設定手順**:
+1. [Ollama公式サイト](https://ollama.com/)からインストール
+2. モデルをダウンロード:
+   ```bash
+   ollama pull gpt-oss:20B
+   # または他のモデル
+   ollama pull llama2
+   ollama pull codellama
+   ```
+3. Ollamaサーバーを起動:
+   ```bash
+   ollama serve
+   ```
+4. 設定画面でOllamaを選択
+5. API URLとモデルを設定（デフォルト: http://localhost:11434）
+
+**おすすめモデル**:
+- `gpt-oss:20B` - 高品質なテキスト生成
+
+---
+
+### 🌐 OpenAI API（GPT-4、GPT-3.5）
+
+**特徴**:
+- 最高品質のテキスト生成
+- 豊富なモデル選択肢
+- 使用量に応じた課金制
+
+**設定手順**:
+1. [OpenAI Platform](https://platform.openai.com/)でアカウント作成
+2. 支払い方法を設定（初回$5程度の入金推奨）
+3. 「API keys」セクションで新しいAPIキーを作成
+4. 設定画面でOpenAIを選択
+5. `sk-`で始まるAPIキーを入力
+6. 使用したいモデルを選択
+
+---
+
+### 🤖 Anthropic API（Claude）
+
+**特徴**:
+- 安全性を重視した設計
+- 長い文脈を理解可能
+- 創作・分析に優れた性能
+
+**設定手順**:
+1. [Anthropic Console](https://console.anthropic.com/)でアカウント作成
+2. 支払い方法を設定
+3. 「API Keys」でAPIキーを作成
+4. 設定画面でAnthropicを選択
+5. `sk-ant-`で始まるAPIキーを入力
+6. 使用したいモデルを選択
+
+---
+
+### 🔍 Google AI API（Gemini）
+
+**特徴**:
+- Googleの最新AI技術
+- マルチモーダル対応
+- 競合他社より低価格
+
+**設定手順**:
+1. [Google AI Studio](https://aistudio.google.com/)にアクセス
+2. Googleアカウントでログイン
+3. 「Get API key」でAPIキーを作成
+4. 設定画面でGoogleを選択
+5. `AIza`で始まるAPIキーを入力
+6. 使用したいモデルを選択
+
+---
+
+### 🔧 設定画面の使い方
+
+1. **左サイドバーの⚙️ボタン**をクリック
+2. **プロバイダーカード**から使用したいAIを選択
+3. **API設定**を入力（Ollama以外はAPIキーが必要）
+4. **接続テスト**ボタンで動作確認
+5. **設定を保存**で確定
+
+### 🔐 APIキーの安全な管理
+
+- **自動保存**: 設定したAPIキーは`.env`ファイルに暗号化せずに保存されます
+- **Git保護**: `.env`ファイルは`.gitignore`で除外済みのため、GitHubにプッシュされません
+- **永続化**: アプリケーション再起動後も設定が維持されます
+- **ローカル管理**: APIキーはローカル環境のみに保存され、外部サーバーには送信されません
+
+**⚠️ 重要**: APIキーは機密情報です。`.env`ファイルを他人と共有したり、バージョン管理システムにコミットしないよう注意してください。
 
 ## API エンドポイント
 
@@ -193,6 +365,12 @@ API_PORT=8000
 
 ### AI生成関連
 - `POST /api/discovery/friends` - Friends Discovery実行
+
+### 設定関連
+- `GET /api/settings/ai-providers` - 利用可能AIプロバイダー一覧取得
+- `GET /api/settings/ai-provider` - 現在のAIプロバイダー設定取得
+- `POST /api/settings/ai-provider` - AIプロバイダー設定更新
+- `POST /api/settings/ai-provider/test` - AIプロバイダー接続テスト
 
 ## 開発情報
 
@@ -225,13 +403,42 @@ cd backend && mypy .
 例: [キャラクター管理] 属性編集機能を追加
 ```
 
+## 引用・参考文献
+
+このプロジェクトの実装は以下の研究論文に基づいています：
+
+```bibtex
+@article{constella2024,
+  title={Constella: A Multi-LLM, Multi-Agent Architecture for Automated Story Generation},
+  author={[著者名]},
+  journal={arXiv preprint arXiv:2507.05820},
+  year={2024},
+  url={https://www.arxiv.org/abs/2507.05820}
+}
+```
+
+**論文概要:**
+マルチLLM・マルチエージェントアーキテクチャを用いた自動ストーリー生成システムの研究。Friends Discovery、Journals、Commentsの3つの主要機能を通じて、創作者の創造性を支援するフレームワークを提案。
+
 ## ライセンス
 
 MIT License
 
-## 貢献
+## 貢献・サポートについて
 
-プルリクエストやイシューの報告を歓迎します。
+**重要なお知らせ:**
+- 本プロジェクトは現在、**プルリクエストを受け付けておりません**
+- **Issues（イシュー）への対応予定もございません**
+- 本実装は学術研究論文の概念実証として開発されたものです
+
+**コードの利用について:**
+- MITライセンスの下、自由にフォーク・改変・利用していただけます
+- 独自の改良や機能追加は、各自のフォークリポジトリで行ってください
+- バグ報告や機能要望は参考として拝見いたしますが、対応をお約束するものではありません
+
+**代替案:**
+- バグ修正や機能追加をご希望の場合は、フォークして独自に開発してください
+- コミュニティ主導のフォークプロジェクトの立ち上げを歓迎します
 
 ---
 

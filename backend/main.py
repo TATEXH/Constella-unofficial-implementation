@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
 
-from app.api import characters, journals, comments, discovery, uploads
+from app.api import characters, journals, comments, discovery, uploads, settings
 from app.core.database import connect_to_mongo, close_mongo_connection
 
 # 環境変数を読み込み
@@ -61,3 +61,4 @@ app.include_router(journals.router, prefix="/api/journals", tags=["journals"])
 app.include_router(comments.router, prefix="/api/comments", tags=["comments"])
 app.include_router(discovery.router, prefix="/api/discovery", tags=["discovery"])
 app.include_router(uploads.router, prefix="/uploads", tags=["uploads"])
+app.include_router(settings.router, prefix="/api/settings", tags=["settings"])

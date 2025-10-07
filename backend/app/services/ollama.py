@@ -1,31 +1,12 @@
-"""Ollama API連携サービス"""
-import httpx
+"""AI API連携サービス (旧Ollama専用 -> 汎用AI対応)"""
 import json
 from typing import Dict, List, Any, Optional
-from app.core.config import settings
+from app.services.ai_provider import generate_text
 from app.prompts import journal_prompt, comment_prompt, friends_discovery_prompt
 
 async def call_ollama(prompt: str) -> str:
-    """Ollama APIを呼び出し"""
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        try:
-            response = await client.post(
-                f"{settings.ollama_api_url}/api/generate",
-                json={
-                    "model": settings.ollama_model,
-                    "prompt": prompt,
-                    "stream": False
-                }
-            )
-            response.raise_for_status()
-            result = response.json()
-            return result.get("response", "")
-        except httpx.RequestError as e:
-            print(f"Ollama API呼び出しエラー: {e}")
-            raise
-        except Exception as e:
-            print(f"予期しないエラー: {e}")
-            raise
+    """AI APIを呼び出し (後方互換性のため関数名維持)"""
+    return await generate_text(prompt)
 
 async def generate_journal(character: Dict[str, Any], theme: str) -> str:
     """ジャーナルエントリーを生成"""

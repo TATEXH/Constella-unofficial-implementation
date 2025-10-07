@@ -1,0 +1,53 @@
+name: Auto Close External Pull Requests
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  auto_close_external_pr:
+    # 作成者がTATEXH以外の場合のみ実行
+    if: github.actor != 'TATEXH'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Close External PR with Message
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // PRにコメントを追加
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## 🙏 プルリクエストありがとうございます
+
+申し訳ございませんが、本プロジェクトでは **プルリクエストを受け付けておりません**。
+
+### 📋 理由
+- 本プロジェクトは学術研究論文の概念実証として開発されています
+- 継続的な開発・メンテナンスは予定されていません
+- プルリクエストやIssuesへの対応リソースがございません
+
+### 🚀 代替案
+1. **フォークして独自開発**: MITライセンスの下、自由にフォーク・改変してください
+2. **コミュニティフォーク**: 独自のフォークプロジェクトを立ち上げることを歓迎します
+3. **学習・研究利用**: コードを参考にした独自実装をお試しください
+
+### 📖 詳細情報
+- [README.md](https://github.com/${context.repo.owner}/${context.repo.repo}#貢献サポートについて) の「貢献・サポートについて」セクションをご確認ください
+- [学術論文](https://www.arxiv.org/abs/2507.05820): 本実装の基となった研究論文
+
+ご理解とご協力をお願いいたします。`
+            });
+
+            // PRをクローズ
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              state: 'closed'
+            });
+
+            console.log(`PR #${context.issue.number} from ${github.actor} has been automatically closed.`);

@@ -5,6 +5,7 @@ import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import CharacterPanel from './components/CharacterPanel';
 import JournalsPanel from './components/JournalsPanel';
+import SettingsPanel from './components/SettingsPanel';
 import api from './services/api';
 
 function App() {
@@ -57,6 +58,10 @@ function App() {
     setActivePanel('journals');
   };
 
+  const handleOpenSettingsPanel = () => {
+    setActivePanel('settings');
+  };
+
   const handleClosePanel = () => {
     setActivePanel(null);
     setSelectedCharacter(null);
@@ -64,7 +69,7 @@ function App() {
 
   return (
     <div className="app">
-      <LeftSidebar onOpenJournals={handleOpenJournalsPanel} />
+      <LeftSidebar onOpenJournals={handleOpenJournalsPanel} onOpenSettings={handleOpenSettingsPanel} />
       
       <MainCanvas>
         {activePanel === 'character' && (
@@ -76,11 +81,16 @@ function App() {
           />
         )}
         {activePanel === 'journals' && (
-          <JournalsPanel 
+          <JournalsPanel
             journals={journals}
             characters={characters}
             onClose={handleClosePanel}
             onUpdate={loadJournals}
+          />
+        )}
+        {activePanel === 'settings' && (
+          <SettingsPanel
+            onClose={handleClosePanel}
           />
         )}
       </MainCanvas>
