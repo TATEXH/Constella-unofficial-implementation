@@ -1,4 +1,4 @@
-# Constella
+# Constella（非公式実装）
 
 AI支援によるクリエイティブライティングシステム
 
