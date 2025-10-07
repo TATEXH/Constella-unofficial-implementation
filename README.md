@@ -260,8 +260,6 @@ GOOGLE_MODEL=gemini-pro
 
 **おすすめモデル**:
 - `gpt-oss:20B` - 高品質なテキスト生成
-- `llama2` - 汎用的な用途
-- `codellama` - コード生成に特化
 
 ---
 
