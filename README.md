@@ -163,10 +163,12 @@ Constellaは、複数のAIプロバイダー（Ollama、OpenAI GPT-4、Anthropic
 ### 必要な環境
 - Docker & Docker Compose
 - 以下のいずれかのAIプロバイダー:
-  - **Ollama**（ローカル実行、APIキー不要）
-  - **OpenAI API**（GPT-4等、APIキー必要）
-  - **Anthropic API**（Claude等、APIキー必要）
-  - **Google AI API**（Gemini等、APIキー必要）
+  - **Ollama**（ローカル実行、APIキー不要）✅ 動作確認済み
+  - **OpenAI API**（GPT-4等、APIキー必要）⚠️ 未検証
+  - **Anthropic API**（Claude等、APIキー必要）⚠️ 未検証
+  - **Google AI API**（Gemini等、APIキー必要）⚠️ 未検証
+
+**注意**: Ollama以外のプロバイダーは実装されていますが、動作確認を行っていません。使用する場合は自己責任でお願いします。
 
 ### 起動手順
 
@@ -278,15 +280,6 @@ GOOGLE_MODEL=gemini-pro
 5. `sk-`で始まるAPIキーを入力
 6. 使用したいモデルを選択
 
-**利用可能モデル**:
-- `gpt-4` - 最高性能、複雑な推論が得意
-- `gpt-4-turbo` - GPT-4の高速版
-- `gpt-3.5-turbo` - コストパフォーマンスが良い
-
-**料金目安**:
-- GPT-4: 1000トークンあたり約$0.03
-- GPT-3.5-turbo: 1000トークンあたり約$0.001
-
 ---
 
 ### 🤖 Anthropic API（Claude）
@@ -303,16 +296,6 @@ GOOGLE_MODEL=gemini-pro
 4. 設定画面でAnthropicを選択
 5. `sk-ant-`で始まるAPIキーを入力
 6. 使用したいモデルを選択
-
-**利用可能モデル**:
-- `claude-3-opus-20240229` - 最高性能モデル
-- `claude-3-sonnet-20240229` - バランス型
-- `claude-3-haiku-20240307` - 高速・低コスト
-
-**料金目安**:
-- Claude 3 Opus: 1000トークンあたり約$0.015
-- Claude 3 Sonnet: 1000トークンあたり約$0.003
-- Claude 3 Haiku: 1000トークンあたり約$0.00025
 
 ---
 
@@ -331,37 +314,7 @@ GOOGLE_MODEL=gemini-pro
 5. `AIza`で始まるAPIキーを入力
 6. 使用したいモデルを選択
 
-**利用可能モデル**:
-- `gemini-pro` - テキスト生成に最適
-- `gemini-pro-vision` - 画像も理解可能
-
-**料金目安**:
-- Gemini Pro: 1000トークンあたり約$0.0005（非常に安価）
-
 ---
-
-### 💡 プロバイダー選択のガイド
-
-**初心者・プライバシー重視**:
-→ **Ollama** がおすすめ
-- APIキー不要
-- ローカル実行でプライベート
-- 無料で利用可能
-
-**最高品質を求める場合**:
-→ **OpenAI GPT-4** または **Anthropic Claude 3 Opus**
-- 創作の質を最優先
-- 予算に余裕がある場合
-
-**コストパフォーマンス重視**:
-→ **Google Gemini Pro** または **OpenAI GPT-3.5-turbo**
-- 低コストで高品質
-- 大量の生成を行う場合
-
-**長文・詳細な創作**:
-→ **Anthropic Claude 3**
-- 長い文脈を理解
-- 安全で一貫性のある創作
 
 ### 🔧 設定画面の使い方
 
