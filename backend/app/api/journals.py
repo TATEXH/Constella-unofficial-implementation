@@ -12,6 +12,7 @@ from app.services.ollama import generate_journal
 
 router = APIRouter()
 
+@router.get("", response_model=List[Journal])
 @router.get("/", response_model=List[Journal])
 async def get_journals():
     """全ジャーナルを取得"""
@@ -32,6 +33,7 @@ async def get_journal(journal_id: str):
     journal["_id"] = str(journal["_id"])
     return Journal(**journal)
 
+@router.post("", response_model=Journal)
 @router.post("/", response_model=Journal)
 async def create_journal(journal: JournalCreate):
     """新しいジャーナルを作成"""

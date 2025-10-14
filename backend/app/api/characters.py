@@ -19,6 +19,7 @@ from app.models.character import (
 
 router = APIRouter()
 
+@router.get("", response_model=List[Character])
 @router.get("/", response_model=List[Character])
 async def get_characters():
     """全キャラクターを取得"""
@@ -39,6 +40,7 @@ async def get_character(character_id: str):
     char["_id"] = str(char["_id"])
     return Character(**char)
 
+@router.post("", response_model=Character)
 @router.post("/", response_model=Character)
 async def create_character(
     name: str = Form(...),
