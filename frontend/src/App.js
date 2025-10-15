@@ -77,7 +77,10 @@ function App() {
             character={selectedCharacter}
             allCharacters={characters}
             onClose={handleClosePanel}
-            onSave={loadCharacters}
+            onSave={() => {
+              loadCharacters();
+              loadJournals();
+            }}
           />
         )}
         {activePanel === 'journals' && (
