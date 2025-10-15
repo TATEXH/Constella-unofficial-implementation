@@ -99,6 +99,7 @@ async def create_character(
     return Character(**character_data)
 
 @router.put("/{character_id}", response_model=Character)
+@router.put("/{character_id}/", response_model=Character)
 async def update_character(
     character_id: str,
     character_update: CharacterUpdate
@@ -259,6 +260,7 @@ async def export_character(character_id: str):
     )
 
 @router.delete("/{character_id}")
+@router.delete("/{character_id}/")
 async def delete_character(character_id: str):
     """キャラクターを削除（関連データも含む）"""
     db = get_database()

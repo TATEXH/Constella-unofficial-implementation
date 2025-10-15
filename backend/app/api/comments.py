@@ -107,6 +107,7 @@ async def generate_comment_endpoint(request: CommentGenerateRequest):
     return Comment(**comment_data)
 
 @router.put("/{comment_id}", response_model=Comment)
+@router.put("/{comment_id}/", response_model=Comment)
 async def update_comment(comment_id: str, comment_update: CommentUpdate):
     """コメントを更新"""
     db = get_database()
@@ -130,6 +131,7 @@ async def update_comment(comment_id: str, comment_update: CommentUpdate):
     return Comment(**comment)
 
 @router.delete("/{comment_id}")
+@router.delete("/{comment_id}/")
 async def delete_comment(comment_id: str):
     """コメントを削除"""
     db = get_database()

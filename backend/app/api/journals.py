@@ -81,6 +81,7 @@ async def generate_journals(request: JournalGenerateRequest):
     return generated_journals
 
 @router.put("/{journal_id}", response_model=Journal)
+@router.put("/{journal_id}/", response_model=Journal)
 async def update_journal(journal_id: str, journal_update: JournalUpdate):
     """ジャーナルを更新"""
     db = get_database()
@@ -104,6 +105,7 @@ async def update_journal(journal_id: str, journal_update: JournalUpdate):
     return Journal(**journal)
 
 @router.delete("/{journal_id}")
+@router.delete("/{journal_id}/")
 async def delete_journal(journal_id: str):
     """ジャーナルを削除（関連コメントも含む）"""
     db = get_database()
