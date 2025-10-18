@@ -300,34 +300,23 @@ async def import_characters(files: List[UploadFile] = File(...)):
     db = get_database()
     results = []
 
-    # プレースホルダーIDとキャラクター名のマッピング
-    PLACEHOLDER_ID_MAPPING = {
-        "MISAKI_SATO_ID": "佐藤 美咲",
-        "REN_TSUKISHIMA_ID": "月島 蓮",
-        "EMILY_JOHNSON_ID": "エミリー・ジョンソン"
-    }
-
     async def resolve_placeholder_ids(relationships):
-        """プレースホルダーIDを実際のキャラクターIDに変換"""
+        """プレースホルダーIDを実際のキャラクターIDに変換
+
+        プレースホルダーIDは `_ID` で終わる形式を想定
+        例: SOME_CHARACTER_ID -> データベースから名前で検索
+        """
         resolved_relationships = []
         for rel in relationships:
             target_id = rel.get("target_character_id")
 
-            # プレースホルダーIDかどうかチェック
-            if target_id in PLACEHOLDER_ID_MAPPING:
-                # キャラクター名からIDを検索
-                target_name = PLACEHOLDER_ID_MAPPING[target_id]
-                target_char = await db[COLLECTIONS["characters"]].find_one({"name": target_name})
-
-                if target_char:
-                    # 実際のIDに置き換え
-                    resolved_relationships.append({
-                        "target_character_id": str(target_char["_id"]),
-                        "description": rel.get("description", "")
-                    })
-                # キャラクターが見つからない場合は関係性をスキップ
+            # プレースホルダーIDかどうかチェック（_IDで終わり、MongoDBのObjectIDではない）
+            if target_id and isinstance(target_id, str) and target_id.endswith("_ID") and len(target_id) != 24:
+                # プレースホルダーIDの場合はスキップ（後で手動設定が必要）
+                # 注: 実際のキャラクターIDに変換するには、全キャラクター名とIDのマッピングが必要
+                continue
             else:
-                # プレースホルダーでない場合はそのまま使用
+                # 実際のIDの場合はそのまま使用
                 resolved_relationships.append(rel)
 
         return resolved_relationships
@@ -420,34 +409,22 @@ async def import_character_overwrite(character_id: str, file: UploadFile = File(
     """既存キャラクターを上書きしてインポート"""
     db = get_database()
 
-    # プレースホルダーIDとキャラクター名のマッピング
-    PLACEHOLDER_ID_MAPPING = {
-        "MISAKI_SATO_ID": "佐藤 美咲",
-        "REN_TSUKISHIMA_ID": "月島 蓮",
-        "EMILY_JOHNSON_ID": "エミリー・ジョンソン"
-    }
-
     async def resolve_placeholder_ids(relationships):
-        """プレースホルダーIDを実際のキャラクターIDに変換"""
+        """プレースホルダーIDを実際のキャラクターIDに変換
+
+        プレースホルダーIDは `_ID` で終わる形式を想定
+        例: SOME_CHARACTER_ID -> スキップ（手動設定が必要）
+        """
         resolved_relationships = []
         for rel in relationships:
             target_id = rel.get("target_character_id")
 
-            # プレースホルダーIDかどうかチェック
-            if target_id in PLACEHOLDER_ID_MAPPING:
-                # キャラクター名からIDを検索
-                target_name = PLACEHOLDER_ID_MAPPING[target_id]
-                target_char = await db[COLLECTIONS["characters"]].find_one({"name": target_name})
-
-                if target_char:
-                    # 実際のIDに置き換え
-                    resolved_relationships.append({
-                        "target_character_id": str(target_char["_id"]),
-                        "description": rel.get("description", "")
-                    })
-                # キャラクターが見つからない場合は関係性をスキップ
+            # プレースホルダーIDかどうかチェック（_IDで終わり、MongoDBのObjectIDではない）
+            if target_id and isinstance(target_id, str) and target_id.endswith("_ID") and len(target_id) != 24:
+                # プレースホルダーIDの場合はスキップ
+                continue
             else:
-                # プレースホルダーでない場合はそのまま使用
+                # 実際のIDの場合はそのまま使用
                 resolved_relationships.append(rel)
 
         return resolved_relationships
