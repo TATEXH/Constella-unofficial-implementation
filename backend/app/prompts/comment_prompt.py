@@ -20,6 +20,16 @@ def create_comment_prompt(
             attributes_text += f"現在の状況: {attr['content']}\n"
         elif attr["type"] == "backstory":
             attributes_text += f"背景: {attr['content']}\n"
+
+    # 関係性を整形
+    relationships_text = ""
+    for rel in character.get("relationships", []):
+        target_name = rel.get("target_character_name", "")
+        description = rel.get("description", "")
+        if target_name:
+            relationships_text += f"- {target_name}: {description}\n"
+        else:
+            relationships_text += f"- {description}\n"
     
     # 既存のコメントを整形
     comments_text = ""
@@ -37,6 +47,9 @@ def create_comment_prompt(
 あなたが演じるキャラクター: {character['name']}
 
 {attributes_text}
+
+関係性:
+{relationships_text if relationships_text else "なし"}
 
 ジャーナルの内容:
 {journal.get('content', '')}

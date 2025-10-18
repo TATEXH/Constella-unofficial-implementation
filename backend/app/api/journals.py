@@ -12,6 +12,40 @@ from app.services.ollama import generate_journal
 
 router = APIRouter()
 
+async def enrich_character_relationships(character: dict, db) -> dict:
+    """キャラクターの関係性にターゲットキャラクター名を追加
+
+    target_character_idからキャラクター名を解決して、
+    target_character_nameフィールドを追加する
+    """
+    enriched_relationships = []
+
+    for rel in character.get("relationships", []):
+        target_id = rel.get("target_character_id")
+
+        # target_character_idからキャラクター情報を取得
+        if target_id:
+            try:
+                target_char = await db[COLLECTIONS["characters"]].find_one({"_id": ObjectId(target_id)})
+                target_name = target_char["name"] if target_char else "不明なキャラクター"
+            except Exception:
+                target_name = "不明なキャラクター"
+        else:
+            target_name = "不明なキャラクター"
+
+        enriched_rel = {
+            "target_character_id": target_id,
+            "target_character_name": target_name,
+            "description": rel.get("description", "")
+        }
+        enriched_relationships.append(enriched_rel)
+
+    # 元のキャラクター情報をコピーして関係性を置き換え
+    enriched_character = character.copy()
+    enriched_character["relationships"] = enriched_relationships
+
+    return enriched_character
+
 @router.get("", response_model=List[Journal])
 @router.get("/", response_model=List[Journal])
 async def get_journals():
@@ -60,9 +94,12 @@ async def generate_journals(request: JournalGenerateRequest):
         character = await db[COLLECTIONS["characters"]].find_one({"_id": ObjectId(character_id)})
         if not character:
             continue
-        
+
+        # 関係性にキャラクター名を追加
+        enriched_character = await enrich_character_relationships(character, db)
+
         # ジャーナルを生成
-        content = await generate_journal(character, request.theme)
+        content = await generate_journal(enriched_character, request.theme)
         
         # ジャーナルを保存
         journal_data = {
