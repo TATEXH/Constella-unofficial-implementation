@@ -300,6 +300,38 @@ async def import_characters(files: List[UploadFile] = File(...)):
     db = get_database()
     results = []
 
+    # プレースホルダーIDとキャラクター名のマッピング
+    PLACEHOLDER_ID_MAPPING = {
+        "MISAKI_SATO_ID": "佐藤 美咲",
+        "REN_TSUKISHIMA_ID": "月島 蓮",
+        "EMILY_JOHNSON_ID": "エミリー・ジョンソン"
+    }
+
+    async def resolve_placeholder_ids(relationships):
+        """プレースホルダーIDを実際のキャラクターIDに変換"""
+        resolved_relationships = []
+        for rel in relationships:
+            target_id = rel.get("target_character_id")
+
+            # プレースホルダーIDかどうかチェック
+            if target_id in PLACEHOLDER_ID_MAPPING:
+                # キャラクター名からIDを検索
+                target_name = PLACEHOLDER_ID_MAPPING[target_id]
+                target_char = await db[COLLECTIONS["characters"]].find_one({"name": target_name})
+
+                if target_char:
+                    # 実際のIDに置き換え
+                    resolved_relationships.append({
+                        "target_character_id": str(target_char["_id"]),
+                        "description": rel.get("description", "")
+                    })
+                # キャラクターが見つからない場合は関係性をスキップ
+            else:
+                # プレースホルダーでない場合はそのまま使用
+                resolved_relationships.append(rel)
+
+        return resolved_relationships
+
     for file in files:
         try:
             # ファイル形式チェック
@@ -347,11 +379,15 @@ async def import_characters(files: List[UploadFile] = File(...)):
                 })
                 continue
 
+            # 関係性のプレースホルダーIDを解決
+            relationships = character_data.get("relationships", [])
+            resolved_relationships = await resolve_placeholder_ids(relationships)
+
             # 新しいキャラクターとして保存
             new_character = {
                 "name": character_name,
                 "attributes": character_data.get("attributes", []),
-                "relationships": character_data.get("relationships", []),
+                "relationships": resolved_relationships,
                 "image_path": None,  # 画像は別途アップロードが必要
                 "created_at": datetime.now(),
                 "updated_at": datetime.now()
@@ -384,6 +420,38 @@ async def import_character_overwrite(character_id: str, file: UploadFile = File(
     """既存キャラクターを上書きしてインポート"""
     db = get_database()
 
+    # プレースホルダーIDとキャラクター名のマッピング
+    PLACEHOLDER_ID_MAPPING = {
+        "MISAKI_SATO_ID": "佐藤 美咲",
+        "REN_TSUKISHIMA_ID": "月島 蓮",
+        "EMILY_JOHNSON_ID": "エミリー・ジョンソン"
+    }
+
+    async def resolve_placeholder_ids(relationships):
+        """プレースホルダーIDを実際のキャラクターIDに変換"""
+        resolved_relationships = []
+        for rel in relationships:
+            target_id = rel.get("target_character_id")
+
+            # プレースホルダーIDかどうかチェック
+            if target_id in PLACEHOLDER_ID_MAPPING:
+                # キャラクター名からIDを検索
+                target_name = PLACEHOLDER_ID_MAPPING[target_id]
+                target_char = await db[COLLECTIONS["characters"]].find_one({"name": target_name})
+
+                if target_char:
+                    # 実際のIDに置き換え
+                    resolved_relationships.append({
+                        "target_character_id": str(target_char["_id"]),
+                        "description": rel.get("description", "")
+                    })
+                # キャラクターが見つからない場合は関係性をスキップ
+            else:
+                # プレースホルダーでない場合はそのまま使用
+                resolved_relationships.append(rel)
+
+        return resolved_relationships
+
     try:
         # 既存キャラクターの確認
         existing_character = await db[COLLECTIONS["characters"]].find_one({"_id": ObjectId(character_id)})
@@ -394,11 +462,15 @@ async def import_character_overwrite(character_id: str, file: UploadFile = File(
         content = await file.read()
         character_data = json.loads(content.decode('utf-8'))
 
+        # 関係性のプレースホルダーIDを解決
+        relationships = character_data.get("relationships", [])
+        resolved_relationships = await resolve_placeholder_ids(relationships)
+
         # 既存キャラクターを更新
         update_data = {
             "name": character_data.get("name", existing_character["name"]),
             "attributes": character_data.get("attributes", []),
-            "relationships": character_data.get("relationships", []),
+            "relationships": resolved_relationships,
             "updated_at": datetime.now()
         }
 
