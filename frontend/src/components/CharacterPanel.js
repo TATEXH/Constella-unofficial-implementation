@@ -779,26 +779,33 @@ const CharacterPanel = ({ character, onClose, onSave, allCharacters = [] }) => {
             </div>
 
             <div className="relationship-list">
-              {formData.relationships.map((rel, index) => (
-                <div key={index} className="relationship-item-card">
-                  <div className="relationship-info">
-                    <div className="relationship-target">
-                      キャラクターID: {rel.target_character_id}
+              {formData.relationships.map((rel, index) => {
+                const targetCharacter = allCharacters.find(
+                  c => (c.id || c._id) === rel.target_character_id
+                );
+                const targetName = targetCharacter ? targetCharacter.name : '不明なキャラクター';
+
+                return (
+                  <div key={index} className="relationship-item-card">
+                    <div className="relationship-info">
+                      <div className="relationship-target">
+                        {targetName}
+                      </div>
+                      <div className="relationship-description">
+                        {rel.description}
+                      </div>
                     </div>
-                    <div className="relationship-description">
-                      {rel.description}
+                    <div className="relationship-actions">
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => handleDeleteRelationship(index)}
+                      >
+                        削除
+                      </button>
                     </div>
                   </div>
-                  <div className="relationship-actions">
-                    <button 
-                      className="btn btn-secondary"
-                      onClick={() => handleDeleteRelationship(index)}
-                    >
-                      削除
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {formData.relationships.length === 0 && (
                 <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>
                   まだ関係性が設定されていません
