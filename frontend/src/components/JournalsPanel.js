@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import CharacterSelector from './CharacterSelector';
 
 const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
   const [selectedCharacters, setSelectedCharacters] = useState([]);
@@ -54,13 +55,6 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
     }
   };
 
-  const handleCharacterSelect = (characterId) => {
-    if (selectedCharacters.includes(characterId)) {
-      setSelectedCharacters(selectedCharacters.filter(id => id !== characterId));
-    } else {
-      setSelectedCharacters([...selectedCharacters, characterId]);
-    }
-  };
 
   const handleGenerateComment = async (journalId, characterId, parentCommentId = null) => {
     const commentKey = `${journalId}-${characterId}-${parentCommentId || 'root'}`;
@@ -307,22 +301,12 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
           
           <div className="form-group">
             <label className="form-label">キャラクターを選択</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              {characters.map(character => (
-                <label 
-                  key={character.id || character._id}
-                  style={{ display: 'flex', alignItems: 'center' }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedCharacters.includes(character.id || character._id)}
-                    onChange={() => handleCharacterSelect(character.id || character._id)}
-                    style={{ marginRight: '5px' }}
-                  />
-                  {character.name}
-                </label>
-              ))}
-            </div>
+            <CharacterSelector
+              characters={characters}
+              selectedCharacters={selectedCharacters}
+              onChange={setSelectedCharacters}
+              placeholder="キャラクターを検索して選択..."
+            />
           </div>
 
           <div className="form-group">
