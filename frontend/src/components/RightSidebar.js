@@ -5,6 +5,8 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
   const [importing, setImporting] = useState(false);
   const [duplicateFiles, setDuplicateFiles] = useState([]);
   const [importFileMap, setImportFileMap] = useState(new Map()); // ファイル名とファイルの対応を保持
+  const [searchText, setSearchText] = useState(''); // 検索テキスト
+  const [displayLimit, setDisplayLimit] = useState(20); // 表示件数制限
 
   const handleExportAll = async () => {
     try {
@@ -189,34 +191,99 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
         </div>
       )}
       
-      <button 
-        className="btn btn-primary" 
+      <button
+        className="btn btn-primary"
         onClick={onCreateNew}
         style={{ width: '100%', marginBottom: '20px' }}
       >
         + 新規作成
       </button>
-      
-      <div className="characters-list">
-        {characters.map(character => (
-          <div 
-            key={character.id || character._id}
-            className="character-card"
-            onClick={() => onSelectCharacter(character)}
-          >
-            {character.image_path && (
-              <img
-                src={`http://localhost:8000${character.image_path}`}
-                alt={character.name}
-                className="character-image"
-                onError={(e) => {
-                  e.target.src = '/placeholder.png';
-                }}
-              />
-            )}
-            <div className="character-name">{character.name}</div>
-          </div>
-        ))}
+
+      {/* 検索ボックス */}
+      <div style={{ marginBottom: '15px' }}>
+        <input
+          type="text"
+          placeholder="キャラクターを検索..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            color: 'white',
+            fontSize: '14px'
+          }}
+          onFocus={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.15)'}
+          onBlur={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
+        />
+      </div>
+
+      <div className="characters-list" style={{ overflowY: 'auto', flex: 1 }}>
+        {(() => {
+          // 検索フィルタリング
+          const filteredCharacters = characters.filter(char =>
+            char.name.toLowerCase().includes(searchText.toLowerCase())
+          );
+
+          // 表示件数制限
+          const displayedCharacters = filteredCharacters.slice(0, displayLimit);
+          const hasMore = filteredCharacters.length > displayLimit;
+
+          return (
+            <>
+              {displayedCharacters.map(character => (
+                <div
+                  key={character.id || character._id}
+                  className="character-card"
+                  onClick={() => onSelectCharacter(character)}
+                >
+                  {character.image_path && (
+                    <img
+                      src={`http://localhost:8000${character.image_path}`}
+                      alt={character.name}
+                      className="character-image"
+                      onError={(e) => {
+                        e.target.src = '/placeholder.png';
+                      }}
+                    />
+                  )}
+                  <div className="character-name">{character.name}</div>
+                </div>
+              ))}
+
+              {/* もっと見るボタン */}
+              {hasMore && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setDisplayLimit(prev => prev + 20)}
+                  style={{
+                    width: '100%',
+                    marginTop: '10px',
+                    padding: '8px',
+                    fontSize: '12px'
+                  }}
+                >
+                  さらに{Math.min(20, filteredCharacters.length - displayLimit)}件表示
+                  ({displayedCharacters.length}/{filteredCharacters.length})
+                </button>
+              )}
+
+              {/* 検索結果なし */}
+              {filteredCharacters.length === 0 && searchText && (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '20px',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '14px'
+                }}>
+                  「{searchText}」に一致するキャラクターが見つかりません
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );
