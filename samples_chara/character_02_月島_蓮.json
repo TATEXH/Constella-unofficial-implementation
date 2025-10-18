@@ -20,11 +20,11 @@
   ],
   "relationships": [
     {
-      "target_character_id": "MISAKI_SATO_ID",
+      "target_character_name": "佐藤 美咲",
       "description": "いとこの妹。明るくて元気な子で、時々進路相談を受ける。本を貸したり、大学生活について話したりしている。"
     },
     {
-      "target_character_id": "EMILY_JOHNSON_ID",
+      "target_character_name": "エミリー・ジョンソン",
       "description": "書店で知り合った英語教師。言語学について意見交換をする仲。お互いの母国語を教え合う言語交換パートナー。"
     }
   ]

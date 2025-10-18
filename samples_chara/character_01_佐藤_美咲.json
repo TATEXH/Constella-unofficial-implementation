@@ -20,11 +20,11 @@
   ],
   "relationships": [
     {
-      "target_character_id": "EMILY_JOHNSON_ID",
+      "target_character_name": "エミリー・ジョンソン",
       "description": "高校の英語の先生。いつも明るくて、授業が楽しい。放課後によく英語の質問をしに行く。"
     },
     {
-      "target_character_id": "REN_TSUKISHIMA_ID",
+      "target_character_name": "月島 蓮",
       "description": "いとこのお兄ちゃん。本が好きで、よく面白い小説を貸してくれる。進路について相談に乗ってもらっている。"
     }
   ]

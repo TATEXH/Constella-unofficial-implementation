@@ -296,10 +296,51 @@ async def delete_character(character_id: str):
 
 @router.post("/import")
 async def import_characters(files: List[UploadFile] = File(...)):
-    """キャラクターJSONファイルをインポート"""
+    """キャラクターJSONファイルをインポート
+
+    2段階インポート:
+    1. 全キャラクターを作成
+    2. キャラクター名から関係性を解決
+    """
     db = get_database()
     results = []
 
+    # 関係性を名前からIDに解決する関数
+    async def resolve_relationships_by_name(relationships):
+        """キャラクター名から関係性を解決
+
+        target_character_name が指定されている場合、名前からIDを検索
+        target_character_id が指定されている場合、そのまま使用
+        """
+        resolved_relationships = []
+        for rel in relationships:
+            # target_character_name が指定されている場合
+            if "target_character_name" in rel and rel["target_character_name"]:
+                target_name = rel["target_character_name"]
+                # 名前からキャラクターを検索
+                target_char = await db[COLLECTIONS["characters"]].find_one({"name": target_name})
+
+                if target_char:
+                    resolved_relationships.append({
+                        "target_character_id": str(target_char["_id"]),
+                        "description": rel.get("description", "")
+                    })
+                # キャラクターが見つからない場合はスキップ
+
+            # target_character_id が指定されている場合
+            elif "target_character_id" in rel and rel["target_character_id"]:
+                target_id = rel["target_character_id"]
+                # プレースホルダーID（_IDで終わる）はスキップ
+                if not (isinstance(target_id, str) and target_id.endswith("_ID") and len(target_id) != 24):
+                    resolved_relationships.append({
+                        "target_character_id": target_id,
+                        "description": rel.get("description", "")
+                    })
+
+        return resolved_relationships
+
+    # 第1段階: 全ファイルを読み込んでキャラクターを作成（関係性なし）
+    created_characters = []
     for file in files:
         try:
             # ファイル形式チェック
@@ -347,17 +388,24 @@ async def import_characters(files: List[UploadFile] = File(...)):
                 })
                 continue
 
-            # 新しいキャラクターとして保存
+            # まず関係性なしでキャラクターを作成
             new_character = {
                 "name": character_name,
                 "attributes": character_data.get("attributes", []),
-                "relationships": character_data.get("relationships", []),
+                "relationships": [],  # 空で作成
                 "image_path": None,  # 画像は別途アップロードが必要
                 "created_at": datetime.now(),
                 "updated_at": datetime.now()
             }
 
             result = await db[COLLECTIONS["characters"]].insert_one(new_character)
+
+            created_characters.append({
+                "id": str(result.inserted_id),
+                "name": character_name,
+                "filename": file.filename,
+                "relationships_raw": character_data.get("relationships", [])
+            })
 
             results.append({
                 "filename": file.filename,
@@ -374,6 +422,21 @@ async def import_characters(files: List[UploadFile] = File(...)):
                 "message": f"インポートエラー: {str(e)}"
             })
 
+    # 第2段階: 全キャラクターが作成された後、関係性を解決して更新
+    for char_info in created_characters:
+        if char_info["relationships_raw"]:
+            try:
+                resolved_rels = await resolve_relationships_by_name(char_info["relationships_raw"])
+
+                if resolved_rels:
+                    await db[COLLECTIONS["characters"]].update_one(
+                        {"_id": ObjectId(char_info["id"])},
+                        {"$set": {"relationships": resolved_rels}}
+                    )
+            except Exception as e:
+                # 関係性の解決に失敗してもキャラクター自体は作成済み
+                print(f"Warning: Failed to resolve relationships for {char_info['name']}: {str(e)}")
+
     return {
         "message": f"{len(files)}個のファイルを処理しました",
         "results": results
@@ -383,6 +446,39 @@ async def import_characters(files: List[UploadFile] = File(...)):
 async def import_character_overwrite(character_id: str, file: UploadFile = File(...)):
     """既存キャラクターを上書きしてインポート"""
     db = get_database()
+
+    async def resolve_relationships_by_name(relationships):
+        """キャラクター名から関係性を解決
+
+        target_character_name が指定されている場合、名前からIDを検索
+        target_character_id が指定されている場合、そのまま使用
+        """
+        resolved_relationships = []
+        for rel in relationships:
+            # target_character_name が指定されている場合
+            if "target_character_name" in rel and rel["target_character_name"]:
+                target_name = rel["target_character_name"]
+                # 名前からキャラクターを検索
+                target_char = await db[COLLECTIONS["characters"]].find_one({"name": target_name})
+
+                if target_char:
+                    resolved_relationships.append({
+                        "target_character_id": str(target_char["_id"]),
+                        "description": rel.get("description", "")
+                    })
+                # キャラクターが見つからない場合はスキップ
+
+            # target_character_id が指定されている場合
+            elif "target_character_id" in rel and rel["target_character_id"]:
+                target_id = rel["target_character_id"]
+                # プレースホルダーID（_IDで終わる）はスキップ
+                if not (isinstance(target_id, str) and target_id.endswith("_ID") and len(target_id) != 24):
+                    resolved_relationships.append({
+                        "target_character_id": target_id,
+                        "description": rel.get("description", "")
+                    })
+
+        return resolved_relationships
 
     try:
         # 既存キャラクターの確認
@@ -394,11 +490,15 @@ async def import_character_overwrite(character_id: str, file: UploadFile = File(
         content = await file.read()
         character_data = json.loads(content.decode('utf-8'))
 
+        # 関係性を名前から解決
+        relationships = character_data.get("relationships", [])
+        resolved_relationships = await resolve_relationships_by_name(relationships)
+
         # 既存キャラクターを更新
         update_data = {
             "name": character_data.get("name", existing_character["name"]),
             "attributes": character_data.get("attributes", []),
-            "relationships": character_data.get("relationships", []),
+            "relationships": resolved_relationships,
             "updated_at": datetime.now()
         }
 

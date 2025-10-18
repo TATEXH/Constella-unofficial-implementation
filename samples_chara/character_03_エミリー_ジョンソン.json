@@ -20,11 +20,11 @@
   ],
   "relationships": [
     {
-      "target_character_id": "MISAKI_SATO_ID",
+      "target_character_name": "佐藤 美咲",
       "description": "担任している3年生の生徒。とても熱心で、放課後よく質問に来る。英語の上達が早く、教えがいがある。"
     },
     {
-      "target_character_id": "REN_TSUKISHIMA_ID",
+      "target_character_name": "月島 蓮",
       "description": "書店で出会った文学を専攻している大学院生。日本文学について教えてもらい、こちらは英語を教えている言語交換の友人。"
     }
   ]
