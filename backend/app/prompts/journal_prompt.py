@@ -19,7 +19,12 @@ def create_journal_prompt(character: Dict[str, Any], theme: str) -> str:
     # 関係性を整形
     relationships_text = ""
     for rel in character.get("relationships", []):
-        relationships_text += f"- {rel['description']}\n"
+        target_name = rel.get("target_character_name", "")
+        description = rel.get("description", "")
+        if target_name:
+            relationships_text += f"- {target_name}: {description}\n"
+        else:
+            relationships_text += f"- {description}\n"
     
     prompt = f"""あなたは高度に創造的な俳優です。以下のキャラクターを演じて、与えられたテーマについて日記を書いてください。
 
