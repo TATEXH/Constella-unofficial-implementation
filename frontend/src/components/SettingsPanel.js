@@ -67,7 +67,8 @@ const SettingsPanel = ({ onClose }) => {
   const handleTest = async () => {
     try {
       setTesting(true);
-      const response = await axios.post('/api/settings/ai-provider/test');
+      // 現在のフォーム入力値をテストAPIに送信
+      const response = await axios.post('/api/settings/ai-provider/test', formData);
 
       if (response.data.success) {
         setAlert({
@@ -81,7 +82,21 @@ const SettingsPanel = ({ onClose }) => {
         });
       }
     } catch (error) {
-      setAlert({ type: 'danger', message: '接続テストに失敗しました' });
+      // エラーレスポンスから詳細情報を取得
+      let errorMessage = '接続テストに失敗しました';
+
+      if (error.response?.data?.error) {
+        // バックエンドからのエラーメッセージ
+        errorMessage = `接続テスト失敗: ${error.response.data.error}`;
+      } else if (error.response?.data?.detail) {
+        // FastAPIのHTTPExceptionからのエラー
+        errorMessage = `エラー: ${error.response.data.detail}`;
+      } else if (error.message) {
+        // Axiosのエラーメッセージ
+        errorMessage = `エラー: ${error.message}`;
+      }
+
+      setAlert({ type: 'danger', message: errorMessage });
     } finally {
       setTesting(false);
     }
