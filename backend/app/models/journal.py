@@ -40,3 +40,8 @@ class JournalGenerateRequest(BaseModel):
     """ジャーナル生成リクエスト"""
     character_ids: List[str]
     theme: str
+
+class PromptPreviewRequest(BaseModel):
+    """プロンプトプレビューリクエスト"""
+    character_id: str
+    theme: str
