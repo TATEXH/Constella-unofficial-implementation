@@ -6,9 +6,10 @@ from bson import ObjectId
 
 from app.core.database import get_database, COLLECTIONS
 from app.models.journal import (
-    Journal, JournalCreate, JournalUpdate, JournalGenerateRequest
+    Journal, JournalCreate, JournalUpdate, JournalGenerateRequest, PromptPreviewRequest
 )
 from app.services.ollama import generate_journal
+from app.prompts import journal_prompt
 
 router = APIRouter()
 
@@ -116,6 +117,34 @@ async def generate_journals(request: JournalGenerateRequest):
         generated_journals.append(Journal(**journal_data))
     
     return generated_journals
+
+@router.post("/preview-prompt")
+async def preview_journal_prompt(request: PromptPreviewRequest):
+    """ジャーナル生成に使用されるプロンプトをプレビュー"""
+    db = get_database()
+
+    try:
+        # キャラクター情報を取得
+        character = await db[COLLECTIONS["characters"]].find_one({"_id": ObjectId(request.character_id)})
+        if not character:
+            raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
+
+        # 関係性にキャラクター名を追加
+        enriched_character = await enrich_character_relationships(character, db)
+
+        # プロンプトを生成
+        prompt = journal_prompt.create_journal_prompt(enriched_character, request.theme)
+
+        return {
+            "prompt": prompt,
+            "character_name": character["name"],
+            "theme": request.theme
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"プロンプト生成エラー: {str(e)}")
 
 @router.put("/{journal_id}", response_model=Journal)
 @router.put("/{journal_id}/", response_model=Journal)

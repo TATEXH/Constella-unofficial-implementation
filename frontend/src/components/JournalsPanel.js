@@ -11,6 +11,11 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
   const [editContent, setEditContent] = useState('');
   const [replyingTo, setReplyingTo] = useState(null); // 返信対象のコメントID
 
+  // プロンプトプレビュー用の状態
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [promptPreview, setPromptPreview] = useState(null);
+  const [loadingPrompt, setLoadingPrompt] = useState(false);
+
   // ローディング状態管理
   const [isGeneratingJournal, setIsGeneratingJournal] = useState(false);
   const [generatingComments, setGeneratingComments] = useState(new Set()); // 生成中のコメントID
@@ -31,6 +36,33 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
       }));
     } catch (error) {
       console.error('コメント読み込みエラー:', error);
+    }
+  };
+
+  const handlePreviewPrompt = async () => {
+    if (selectedCharacters.length === 0 || !theme) {
+      alert('キャラクターとテーマを入力してください');
+      return;
+    }
+
+    setLoadingPrompt(true);
+    try {
+      // 最初のキャラクターでプレビュー
+      const result = await api.previewJournalPrompt(selectedCharacters[0], theme);
+      setPromptPreview(result);
+      setShowPromptModal(true);
+    } catch (error) {
+      console.error('プロンプトプレビューエラー:', error);
+      alert('プロンプトのプレビューに失敗しました。');
+    } finally {
+      setLoadingPrompt(false);
+    }
+  };
+
+  const handleCopyPrompt = () => {
+    if (promptPreview) {
+      navigator.clipboard.writeText(promptPreview.prompt);
+      alert('プロンプトをクリップボードにコピーしました');
     }
   };
 
@@ -319,28 +351,52 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
             />
           </div>
 
-          <button
-            className="btn btn-success"
-            onClick={handleGenerateJournals}
-            disabled={isGeneratingJournal}
-            style={{
-              position: 'relative',
-              opacity: isGeneratingJournal ? 0.7 : 1
-            }}
-          >
-            {isGeneratingJournal ? (
-              <>
-                <span style={{
-                  display: 'inline-block',
-                  marginRight: '8px',
-                  animation: 'spin 1s linear infinite'
-                }}>⏳</span>
-                生成中...
-              </>
-            ) : (
-              'ジャーナルを生成'
-            )}
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              className="btn btn-outline-secondary"
+              onClick={handlePreviewPrompt}
+              disabled={loadingPrompt || isGeneratingJournal}
+              style={{
+                opacity: loadingPrompt ? 0.7 : 1
+              }}
+            >
+              {loadingPrompt ? (
+                <>
+                  <span style={{
+                    display: 'inline-block',
+                    marginRight: '8px',
+                    animation: 'spin 1s linear infinite'
+                  }}>⏳</span>
+                  読み込み中...
+                </>
+              ) : (
+                '📋 プロンプトを確認'
+              )}
+            </button>
+
+            <button
+              className="btn btn-success"
+              onClick={handleGenerateJournals}
+              disabled={isGeneratingJournal}
+              style={{
+                position: 'relative',
+                opacity: isGeneratingJournal ? 0.7 : 1
+              }}
+            >
+              {isGeneratingJournal ? (
+                <>
+                  <span style={{
+                    display: 'inline-block',
+                    marginRight: '8px',
+                    animation: 'spin 1s linear infinite'
+                  }}>⏳</span>
+                  生成中...
+                </>
+              ) : (
+                'ジャーナルを生成'
+              )}
+            </button>
+          </div>
         </div>
       )}
 
@@ -474,6 +530,92 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
           </div>
         ))}
       </div>
+
+      {/* プロンプトプレビューモーダル */}
+      {showPromptModal && promptPreview && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '800px',
+            maxHeight: '80vh',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{ margin: 0 }}>生成プロンプトプレビュー</h3>
+              <button
+                onClick={() => setShowPromptModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <p style={{ margin: '4px 0', color: '#666' }}>
+                <strong>キャラクター:</strong> {promptPreview.character_name}
+              </p>
+              <p style={{ margin: '4px 0', color: '#666' }}>
+                <strong>テーマ:</strong> {promptPreview.theme}
+              </p>
+            </div>
+
+            <div style={{
+              flex: 1,
+              overflow: 'auto',
+              backgroundColor: '#f5f5f5',
+              padding: '16px',
+              borderRadius: '4px',
+              marginBottom: '16px',
+              fontFamily: 'monospace',
+              whiteSpace: 'pre-wrap',
+              fontSize: '14px'
+            }}>
+              {promptPreview.prompt}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-outline-secondary"
+                onClick={handleCopyPrompt}
+              >
+                📋 コピー
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowPromptModal(false)}
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

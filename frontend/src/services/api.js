@@ -66,6 +66,14 @@ const api = {
     return response.data;
   },
 
+  previewJournalPrompt: async (characterId, theme) => {
+    const response = await axios.post(`${API_BASE_URL}/api/journals/preview-prompt`, {
+      character_id: characterId,
+      theme: theme
+    });
+    return response.data;
+  },
+
   updateJournal: async (id, data) => {
     const response = await axios.put(`${API_BASE_URL}/api/journals/${id}`, data);
     return response.data;
