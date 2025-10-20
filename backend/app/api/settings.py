@@ -173,23 +173,77 @@ async def update_provider_settings(provider_settings: AIProviderSettings):
 
 
 @router.post("/ai-provider/test")
-async def test_ai_provider():
-    """現在のAI プロバイダーの接続テスト"""
+async def test_ai_provider(test_settings: Optional[AIProviderSettings] = None):
+    """AI プロバイダーの接続テスト
+
+    test_settingsが指定されている場合、その設定でテスト
+    指定されていない場合、現在の設定でテスト
+    """
     try:
-        from app.services.ai_provider import generate_text
+        # テスト用の設定を一時的に適用
+        if test_settings:
+            # 元の設定を保存
+            original_provider = settings.ai_provider
+            original_ollama_url = settings.ollama_api_url
+            original_ollama_model = settings.ollama_model
+            original_openai_key = settings.openai_api_key
+            original_openai_model = settings.openai_model
+            original_openai_base_url = settings.openai_base_url
+            original_anthropic_key = settings.anthropic_api_key
+            original_anthropic_model = settings.anthropic_model
+            original_google_key = settings.google_api_key
+            original_google_model = settings.google_model
 
-        test_prompt = "こんにちは。簡潔に挨拶を返してください。"
-        response = await generate_text(test_prompt)
+            # テスト用設定を一時適用
+            settings.ai_provider = test_settings.provider
+            if test_settings.ollama_api_url:
+                settings.ollama_api_url = test_settings.ollama_api_url
+            if test_settings.ollama_model:
+                settings.ollama_model = test_settings.ollama_model
+            if test_settings.openai_api_key and test_settings.openai_api_key != "***":
+                settings.openai_api_key = test_settings.openai_api_key
+            if test_settings.openai_model:
+                settings.openai_model = test_settings.openai_model
+            if test_settings.openai_base_url:
+                settings.openai_base_url = test_settings.openai_base_url
+            if test_settings.anthropic_api_key and test_settings.anthropic_api_key != "***":
+                settings.anthropic_api_key = test_settings.anthropic_api_key
+            if test_settings.anthropic_model:
+                settings.anthropic_model = test_settings.anthropic_model
+            if test_settings.google_api_key and test_settings.google_api_key != "***":
+                settings.google_api_key = test_settings.google_api_key
+            if test_settings.google_model:
+                settings.google_model = test_settings.google_model
 
-        return {
-            "success": True,
-            "provider": settings.ai_provider,
-            "response": response[:100] + ("..." if len(response) > 100 else "")
-        }
+        try:
+            from app.services.ai_provider import generate_text
+
+            test_prompt = "こんにちは。簡潔に挨拶を返してください。"
+            response = await generate_text(test_prompt)
+
+            return {
+                "success": True,
+                "provider": settings.ai_provider,
+                "response": response[:100] + ("..." if len(response) > 100 else "")
+            }
+
+        finally:
+            # 元の設定に戻す
+            if test_settings:
+                settings.ai_provider = original_provider
+                settings.ollama_api_url = original_ollama_url
+                settings.ollama_model = original_ollama_model
+                settings.openai_api_key = original_openai_key
+                settings.openai_model = original_openai_model
+                settings.openai_base_url = original_openai_base_url
+                settings.anthropic_api_key = original_anthropic_key
+                settings.anthropic_model = original_anthropic_model
+                settings.google_api_key = original_google_key
+                settings.google_model = original_google_model
 
     except Exception as e:
         return {
             "success": False,
-            "provider": settings.ai_provider,
+            "provider": settings.ai_provider if not test_settings else test_settings.provider,
             "error": str(e)
         }
