@@ -583,6 +583,14 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
               <p style={{ margin: '4px 0', color: '#666' }}>
                 <strong>テーマ:</strong> {promptPreview.theme}
               </p>
+              {promptPreview.estimated_tokens && (
+                <p style={{ margin: '4px 0', color: '#666' }}>
+                  <strong>推定トークン数:</strong> 約{promptPreview.estimated_tokens.toLocaleString()}トークン
+                  <span style={{ fontSize: '12px', marginLeft: '8px', color: '#999' }}>
+                    (±20%の誤差があります)
+                  </span>
+                </p>
+              )}
             </div>
 
             <div style={{
