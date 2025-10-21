@@ -59,10 +59,32 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
     }
   };
 
-  const handleCopyPrompt = () => {
-    if (promptPreview) {
-      navigator.clipboard.writeText(promptPreview.prompt);
+  const handleCopyPrompt = async () => {
+    if (!promptPreview) return;
+
+    try {
+      // クリップボードAPIを使用（モダンブラウザ）
+      await navigator.clipboard.writeText(promptPreview.prompt);
       alert('プロンプトをクリップボードにコピーしました');
+    } catch (error) {
+      console.error('クリップボードへのコピーエラー:', error);
+
+      // フォールバック: 古いブラウザや権限エラーの場合
+      try {
+        // テキストエリアを使った古い方法
+        const textArea = document.createElement('textarea');
+        textArea.value = promptPreview.prompt;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('プロンプトをクリップボードにコピーしました');
+      } catch (fallbackError) {
+        console.error('フォールバックコピーエラー:', fallbackError);
+        alert('コピーに失敗しました。ブラウザの設定を確認してください。');
+      }
     }
   };
 
