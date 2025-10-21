@@ -510,6 +510,7 @@ const JournalsPanel = ({ journals, characters, onClose, onUpdate }) => {
                       <option value="">コメントするキャラクターを選択</option>
                       {characters
                         .filter(c => (c.id || c._id) !== journal.character_id)
+                        .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
                         .map(character => (
                           <option
                             key={character.id || character._id}

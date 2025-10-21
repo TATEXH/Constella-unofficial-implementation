@@ -16,16 +16,19 @@ const CharacterSelector = ({
   const [filteredCharacters, setFilteredCharacters] = useState([]);
   const dropdownRef = useRef(null);
 
-  // 検索テキストでキャラクターをフィルタリング
+  // 検索テキストでキャラクターをフィルタリングしてソート
   useEffect(() => {
+    let result;
     if (searchText.trim() === '') {
-      setFilteredCharacters(characters);
+      result = characters;
     } else {
-      const filtered = characters.filter(char =>
+      result = characters.filter(char =>
         char.name.toLowerCase().includes(searchText.toLowerCase())
       );
-      setFilteredCharacters(filtered);
     }
+    // アルファベット順にソート
+    const sorted = [...result].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    setFilteredCharacters(sorted);
   }, [searchText, characters]);
 
   // ドロップダウン外クリックで閉じる
