@@ -13,6 +13,28 @@ from app.prompts import journal_prompt
 
 router = APIRouter()
 
+def estimate_token_count(text: str) -> int:
+    """プロンプトの概算トークン数を計算
+
+    簡易的な推定方法:
+    - 日本語文字（ひらがな・カタカナ・漢字）: 1文字 ≈ 2.5トークン
+    - 英数字・記号: 1文字 ≈ 0.25トークン
+
+    注: これは概算値であり、実際のトークン数とは±20%程度の誤差があります
+    """
+    if not text:
+        return 0
+
+    # 日本語文字（U+3000以上）をカウント
+    japanese_chars = sum(1 for c in text if ord(c) >= 0x3000)
+    # その他の文字
+    other_chars = len(text) - japanese_chars
+
+    # 概算トークン数を計算
+    estimated = int(japanese_chars * 2.5 + other_chars * 0.25)
+
+    return estimated
+
 async def enrich_character_relationships(character: dict, db) -> dict:
     """キャラクターの関係性にターゲットキャラクター名を追加
 
@@ -135,10 +157,14 @@ async def preview_journal_prompt(request: PromptPreviewRequest):
         # プロンプトを生成
         prompt = journal_prompt.create_journal_prompt(enriched_character, request.theme)
 
+        # トークン数を推定
+        token_count = estimate_token_count(prompt)
+
         return {
             "prompt": prompt,
             "character_name": character["name"],
-            "theme": request.theme
+            "theme": request.theme,
+            "estimated_tokens": token_count
         }
 
     except HTTPException:
