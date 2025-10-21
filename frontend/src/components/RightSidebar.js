@@ -222,10 +222,10 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
 
       <div className="characters-list" style={{ overflowY: 'auto', flex: 1 }}>
         {(() => {
-          // 検索フィルタリング
-          const filteredCharacters = characters.filter(char =>
-            char.name.toLowerCase().includes(searchText.toLowerCase())
-          );
+          // 検索フィルタリングとアルファベット順ソート
+          const filteredCharacters = characters
+            .filter(char => char.name.toLowerCase().includes(searchText.toLowerCase()))
+            .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
           // 表示件数制限
           const displayedCharacters = filteredCharacters.slice(0, displayLimit);
