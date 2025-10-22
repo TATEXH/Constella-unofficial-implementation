@@ -81,6 +81,44 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
     }
   };
 
+  const handleBulkOverwrite = async (overwriteAll) => {
+    if (overwriteAll) {
+      // すべて上書き
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const item of duplicateFiles) {
+        try {
+          const originalFile = importFileMap.get(item.filename);
+          if (!originalFile) {
+            errorCount++;
+            continue;
+          }
+
+          await api.importCharacterOverwrite(item.existing_id, originalFile);
+          successCount++;
+        } catch (error) {
+          console.error('上書きエラー:', error);
+          errorCount++;
+        }
+      }
+
+      if (errorCount > 0) {
+        alert(`${successCount}個のキャラクターを上書きしました。\n${errorCount}個のファイルでエラーが発生しました。`);
+      } else {
+        alert(`${successCount}個のキャラクターを上書きしました。`);
+      }
+
+      onCharacterUpdate();
+    }
+
+    // すべてクリア
+    setDuplicateFiles([]);
+    setImportFileMap(new Map());
+    const fileInput = document.getElementById('character-import');
+    if (fileInput) fileInput.value = '';
+  };
+
   const handleOverwriteConfirm = async (duplicateItem, overwrite) => {
     if (overwrite) {
       try {
@@ -159,6 +197,25 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
           marginBottom: '20px'
         }}>
           <h4 style={{ marginBottom: '10px', color: '#856404' }}>重複キャラクター</h4>
+
+          {/* 一括処理ボタン */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+            <button
+              className="btn btn-danger"
+              onClick={() => handleBulkOverwrite(true)}
+              style={{ flex: 1, fontSize: '14px', padding: '8px 12px' }}
+            >
+              すべて上書き
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleBulkOverwrite(false)}
+              style={{ flex: 1, fontSize: '14px', padding: '8px 12px' }}
+            >
+              すべてスキップ
+            </button>
+          </div>
+
           {duplicateFiles.map((item, index) => (
             <div key={index} style={{
               background: '#fff',
@@ -167,7 +224,7 @@ const RightSidebar = ({ characters, onSelectCharacter, onCreateNew, onCharacterU
               marginBottom: '10px',
               border: '1px solid #ddd'
             }}>
-              <p style={{ margin: '0 0 10px 0', fontSize: '14px' }}>
+              <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#856404' }}>
                 <strong>{item.character_name}</strong> は既に存在します
               </p>
               <div style={{ display: 'flex', gap: '5px' }}>
