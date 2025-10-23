@@ -163,8 +163,8 @@ async def update_provider_settings(provider_settings: AIProviderSettings):
             settings.google_model = provider_settings.google_model
 
         return {
-            "message": "設定を更新しました",
-            "note": "設定は.envファイルに保存され、アプリ再起動後も維持されます"
+            "message": "設定を更新しました。設定は.envファイルに保存され、再起動後も維持されます。",
+            "saved_to": ".env"
         }
 
     except Exception as e:

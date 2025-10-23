@@ -45,14 +45,24 @@ class EnvManager:
         lines = content.split('\n')
         updated = False
 
-        # 既存の変数を更新
+        # 既存の変数を更新（コメントアウトされた行も含む）
         for i, line in enumerate(lines):
-            # コメント行や空行はスキップ
-            if line.strip().startswith('#') or not line.strip():
+            if not line.strip():
                 continue
 
-            # KEY=VALUE形式の行を検索
-            if '=' in line:
+            # コメントアウトされた変数も検出
+            stripped_line = line.strip()
+            if stripped_line.startswith('#'):
+                # "# KEY=value" 形式を検出
+                comment_content = stripped_line[1:].strip()
+                if '=' in comment_content:
+                    existing_key = comment_content.split('=')[0].strip()
+                    if existing_key == key:
+                        # コメントを外して値を更新
+                        lines[i] = f"{key}={value}"
+                        updated = True
+                        break
+            elif '=' in line:
                 existing_key = line.split('=')[0].strip()
                 if existing_key == key:
                     lines[i] = f"{key}={value}"
@@ -77,12 +87,24 @@ class EnvManager:
         for key, value in variables.items():
             updated = False
 
-            # 既存の変数を更新
+            # 既存の変数を更新（コメントアウトされた行も含む）
             for i, line in enumerate(lines):
-                if line.strip().startswith('#') or not line.strip():
+                if not line.strip():
                     continue
 
-                if '=' in line:
+                # コメントアウトされた変数も検出
+                stripped_line = line.strip()
+                if stripped_line.startswith('#'):
+                    # "# KEY=value" 形式を検出
+                    comment_content = stripped_line[1:].strip()
+                    if '=' in comment_content:
+                        existing_key = comment_content.split('=')[0].strip()
+                        if existing_key == key:
+                            # コメントを外して値を更新
+                            lines[i] = f"{key}={value}"
+                            updated = True
+                            break
+                elif '=' in line:
                     existing_key = line.split('=')[0].strip()
                     if existing_key == key:
                         lines[i] = f"{key}={value}"
@@ -174,4 +196,4 @@ class EnvManager:
 
 
 # シングルトンインスタンス
-env_manager = EnvManager("/root/Constella/.env")
+env_manager = EnvManager("/app/.env")

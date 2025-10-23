@@ -35,6 +35,7 @@ services:
       UPLOAD_DIR: /app/uploads
     volumes:
       - ./backend:/app
+      - ./.env:/app/.env
       - ./credentials:/app/credentials:ro
       - uploads:/app/uploads
     depends_on:
