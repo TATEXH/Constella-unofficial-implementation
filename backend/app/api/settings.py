@@ -55,10 +55,10 @@ async def get_available_providers() -> list[AIProviderInfo]:
         AIProviderInfo(
             name="openai",
             display_name="OpenAI",
-            description="GPT-4, GPT-3.5等のAPIサービス",
+            description="GPT-4o, GPT-3.5等のAPIサービス",
             requires_api_key=True,
-            default_model="gpt-4",
-            available_models=["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"]
+            default_model="gpt-4o-mini",
+            available_models=["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-4"]
         ),
         AIProviderInfo(
             name="anthropic",
@@ -218,7 +218,7 @@ async def test_ai_provider(test_settings: Optional[AIProviderSettings] = None):
         try:
             from app.services.ai_provider import generate_text
 
-            test_prompt = "こんにちは。簡潔に挨拶を返してください。"
+            test_prompt = "Hi"
             response = await generate_text(test_prompt)
 
             return {

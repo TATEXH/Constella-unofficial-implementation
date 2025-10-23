@@ -32,10 +32,10 @@ class OllamaProvider(BaseAIProvider):
                 result = response.json()
                 return result.get("response", "")
             except httpx.RequestError as e:
-                print(f"Ollama API呼び出しエラー: {e}")
+                print(f"Ollama API request error: {e}")
                 raise
             except Exception as e:
-                print(f"予期しないエラー: {e}")
+                print(f"Unexpected error: {e}")
                 raise
 
 
@@ -70,11 +70,20 @@ class OpenAIProvider(BaseAIProvider):
                 response.raise_for_status()
                 result = response.json()
                 return result["choices"][0]["message"]["content"]
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    raise ValueError("OpenAI API rate limit exceeded. Please check your usage limits or wait before retrying.")
+                elif e.response.status_code == 401:
+                    raise ValueError("Invalid OpenAI API key. Please check your API key settings.")
+                elif e.response.status_code == 404:
+                    raise ValueError(f"Model '{settings.openai_model}' not found. Available models: gpt-4o-mini, gpt-4o, gpt-4-turbo, gpt-3.5-turbo")
+                print(f"OpenAI API HTTP error: {e}")
+                raise
             except httpx.RequestError as e:
-                print(f"OpenAI API呼び出しエラー: {e}")
+                print(f"OpenAI API request error: {e}")
                 raise
             except Exception as e:
-                print(f"予期しないエラー: {e}")
+                print(f"Unexpected error: {e}")
                 raise
 
 
@@ -108,10 +117,10 @@ class AnthropicProvider(BaseAIProvider):
                 result = response.json()
                 return result["content"][0]["text"]
             except httpx.RequestError as e:
-                print(f"Anthropic API呼び出しエラー: {e}")
+                print(f"Anthropic API request error: {e}")
                 raise
             except Exception as e:
-                print(f"予期しないエラー: {e}")
+                print(f"Unexpected error: {e}")
                 raise
 
 
@@ -144,10 +153,10 @@ class GoogleProvider(BaseAIProvider):
                 result = response.json()
                 return result["candidates"][0]["content"]["parts"][0]["text"]
             except httpx.RequestError as e:
-                print(f"Google API呼び出しエラー: {e}")
+                print(f"Google API request error: {e}")
                 raise
             except Exception as e:
-                print(f"予期しないエラー: {e}")
+                print(f"Unexpected error: {e}")
                 raise
 
 
