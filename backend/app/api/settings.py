@@ -63,13 +63,12 @@ async def get_available_providers() -> list[AIProviderInfo]:
         AIProviderInfo(
             name="anthropic",
             display_name="Anthropic Claude",
-            description="Claude 3 Sonnet, Haikuなど",
+            description="Claude Sonnet 4.5, Claude 3.5など",
             requires_api_key=True,
-            default_model="claude-3-sonnet-20240229",
+            default_model="claude-sonnet-4-5-20250929",
             available_models=[
-                "claude-3-opus-20240229",
-                "claude-3-sonnet-20240229",
-                "claude-3-haiku-20240307"
+                "claude-sonnet-4-5-20250929",
+                "claude-3-5-sonnet-20241022"
             ]
         ),
         AIProviderInfo(
