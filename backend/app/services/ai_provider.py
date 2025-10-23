@@ -44,7 +44,7 @@ class OpenAIProvider(BaseAIProvider):
 
     async def generate_text(self, prompt: str) -> str:
         if not settings.openai_api_key:
-            raise ValueError("OpenAI API キーが設定されていません")
+            raise ValueError("OpenAI API key is not set")
 
         headers = {
             "Authorization": f"Bearer {settings.openai_api_key}",
@@ -92,11 +92,11 @@ class AnthropicProvider(BaseAIProvider):
 
     async def generate_text(self, prompt: str) -> str:
         if not settings.anthropic_api_key:
-            raise ValueError("Anthropic API キーが設定されていません")
+            raise ValueError("Anthropic API key is not set")
 
         headers = {
             "x-api-key": settings.anthropic_api_key,
-            "Content-Type": "application/json",
+            "content-type": "application/json",
             "anthropic-version": "2023-06-01"
         }
 
@@ -116,6 +116,24 @@ class AnthropicProvider(BaseAIProvider):
                 response.raise_for_status()
                 result = response.json()
                 return result["content"][0]["text"]
+            except httpx.HTTPStatusError as e:
+                error_detail = ""
+                try:
+                    error_json = e.response.json()
+                    error_detail = error_json.get("error", {}).get("message", str(error_json))
+                except:
+                    error_detail = e.response.text
+
+                if e.response.status_code == 429:
+                    raise ValueError("Anthropic API rate limit exceeded. Please check your usage limits or wait before retrying.")
+                elif e.response.status_code == 401:
+                    raise ValueError("Invalid Anthropic API key. Please check your API key settings.")
+                elif e.response.status_code == 404:
+                    raise ValueError(f"Anthropic API endpoint not found (404). This may indicate an invalid API key or account access issue. Available models: claude-sonnet-4-5-20250929, claude-3-5-sonnet-20241022. Details: {error_detail}")
+                elif e.response.status_code == 400:
+                    raise ValueError(f"Bad request to Anthropic API: {error_detail}. Available models: claude-sonnet-4-5-20250929, claude-3-5-sonnet-20241022")
+                print(f"Anthropic API HTTP error: {e}, Details: {error_detail}")
+                raise
             except httpx.RequestError as e:
                 print(f"Anthropic API request error: {e}")
                 raise
@@ -129,7 +147,7 @@ class GoogleProvider(BaseAIProvider):
 
     async def generate_text(self, prompt: str) -> str:
         if not settings.google_api_key:
-            raise ValueError("Google API キーが設定されていません")
+            raise ValueError("Google API key is not set")
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             try:
@@ -171,7 +189,7 @@ def get_ai_provider() -> BaseAIProvider:
 
     provider_class = provider_map.get(settings.ai_provider)
     if not provider_class:
-        raise ValueError(f"未対応のAI プロバイダー: {settings.ai_provider}")
+        raise ValueError(f"Unsupported AI provider: {settings.ai_provider}")
 
     return provider_class()
 
