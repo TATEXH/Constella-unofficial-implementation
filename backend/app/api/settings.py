@@ -74,10 +74,10 @@ async def get_available_providers() -> list[AIProviderInfo]:
         AIProviderInfo(
             name="google",
             display_name="Google Gemini",
-            description="Gemini Pro APIサービス",
+            description="Gemini 2.5 Pro, Flashなど",
             requires_api_key=True,
-            default_model="gemini-pro",
-            available_models=["gemini-pro", "gemini-pro-vision"]
+            default_model="gemini-2.5-pro",
+            available_models=["gemini-2.5-pro", "gemini-2.5-flash"]
         )
     ]
 
